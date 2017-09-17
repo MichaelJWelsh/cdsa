@@ -1,2 +1,2 @@
-# c-data-structures-and-algorithms
-Implementation of many commonplace data structures and algorithms in C
+# C Data Structures and Algorithms
+Implementation of many commonplace data structures and algorithms in C.
