@@ -1,2 +1,4 @@
-# C Data Structures and Algorithms
-Implementation of many commonplace data structures and algorithms in C.
+# Data Structures and Algorithms
+This repository is an ongoing project of implementing data structures and algorithms in C. I find I often use the same constructs in C that require a lot of boilerplate code, so I made this repository to both organize these constructs and allow easy integration of these constructs into my existing projects. Feel free to use these data structures and algorithms in your own way; I made this repository with the default license.
+
+Every header/source file for a data structure or algorithm is independent of all other data structures and algorithms in this repository. I follow C99 standards, but occasionally (albeit rarely) follow the C11 standard (it is made clear what standard the data structure/algorithm follows at the top of the header/source file in the comments). Portability is top priority, so only the C standard library is used.
