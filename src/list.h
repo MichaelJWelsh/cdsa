@@ -26,7 +26,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * Features:
  *      -   Supports accessing nodes by index.
  *      -   Allows you to define what functions to call for memory allocation/deallocation.
- *      -   Can take ownership over stored data and free it when necessary.
+ *      -   Can optionally take ownership over stored data and free it when necessary.
  *
  * API:
  *      -   @ref list_create
@@ -47,6 +47,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      -   @ref list_delete_right
  *      -   @ref list_pop_front
  *      -   @ref list_pop_back
+ *      -   @ref list_sort
  *      -   @ref list_for_each
  *      -   @ref list_for_each_reverse
  */
@@ -289,6 +290,15 @@ void* list_pop_front(List *list);
  * @warning                     Undefined behavior if: @param list == NULL, or the @param list is empty.
  */
 void* list_pop_back(List *list);
+
+/**
+ * @function                    list_sort
+ * @brief                       Uses the merge sort algorithm to sort the @param list in-place.
+ * @param list                  The @ref List to sort.
+ * @param compare               The compare function to be used.
+ * @warning                     Undefined behavior if: @param list == NULL, or @param compare == NULL.
+ */
+void list_sort(List *list, int (*compare)(const void*, const void*));
 
 /**
  * @function                    list_for_each
