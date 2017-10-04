@@ -62,7 +62,6 @@ extern "C" {
 #include <stdlib.h>
 
 /**
- * @typedef     ListNode
  * @brief       Represents a node in a @ref List.
  */
 typedef struct ListNode {
@@ -72,7 +71,6 @@ typedef struct ListNode {
 } ListNode;
 
 /**
- * @typedef     List
  * @brief       Represents a doubly linked list.
  */
 typedef struct List {
