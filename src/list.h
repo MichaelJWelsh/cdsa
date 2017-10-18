@@ -23,10 +23,10 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * Dependencies:
  *      -   C99 standard library
  *
- * Features:
+ * Unique Features:
  *      -   Supports accessing nodes by index.
  *      -   Allows you to define what functions to call for memory allocation/deallocation.
- *      -   Can optionally take ownership over stored data and free it when necessary.
+ *      -   Can optionally take ownership over stored data and automatically free it when necessary.
  *
  * API:
  *      -   @ref list_create
@@ -102,23 +102,23 @@ List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (
 
 /**
  * @function                    list_destroy
- * @brief                       Dynamically frees the @ref List and all @ref ListNodes associated with it.
+ * @brief                       Dynamically frees the @ref List and all @ref ListNodes associated with it. If
+ *                              @param list is a NULL pointer, this function simply returns.
  * @param list                  The @ref List to be destroyed (i.e. deallocated).
- * @warning                     Undefined behavior if: @param list == NULL.
  */
 void list_destroy(List *list);
 
 /**
  * @function                    list_to_array
  * @brief                       Dynamically allocates an array of pointers-to-void of size list->size.
- *                              list.list_malloc is used to dynamically allocate this array.
+ *                              list->list_malloc is used to dynamically allocate this array.
  * @param list                  The @ref List to be used to create the array.
  * @return                      NULL if allocation failed, otherwise the memory address of the newly created
- *                              array.
+ *                              array of pointers-to-void (i.e. pointers to data).
  * @warning                     Undefined behavior if: @param list == NULL. Note that the user is responsible
  *                              for freeing this array.
  */
-void* list_to_array(List *list);
+void** list_to_array(List *list);
 
 /**
  * @function                    list_find
@@ -159,7 +159,8 @@ ListNode* list_at(List *list, size_t index);
  * @param index                 The index of where the new @ref ListNode will reside.
  * @return                      NULL if allocation of new @ref ListNode failed, otherwise returns the new
  *                              @ref ListNode.
- * @warning                     Undefined behavior if: @param list == NULL, or @param index is out of bounds.
+ * @warning                     Undefined behavior if: @param list == NULL, or @param index greater than the
+ *                              size of @param list.
  */
 ListNode* list_insert(List *list, void *data, size_t index);
 
@@ -291,9 +292,13 @@ void* list_pop_back(List *list);
 
 /**
  * @function                    list_sort
- * @brief                       Uses the merge sort algorithm to sort the @param list in-place.
+ * @brief                       Uses the merge sort algorithm to sort the @param list in-place. This sort is
+ *                              stable (order of "equal" @ref ListNode's is preserved). O(nlog(n)) time
+ *                              complexity, O(1) space complexity. The time-space complexity is achieved
+ *                              through an iterative sort rather than a recursive one.
  * @param list                  The @ref List to sort.
- * @param compare               The compare function to be used.
+ * @param compare               The compare function to be used. The data members of the two @ref ListNode's
+ *                              being compared is passed to this function.
  * @warning                     Undefined behavior if: @param list == NULL, or @param compare == NULL.
  */
 void list_sort(List *list, int (*compare)(const void*, const void*));
@@ -301,20 +306,20 @@ void list_sort(List *list, int (*compare)(const void*, const void*));
 /**
  * @function                    list_for_each
  * @brief                       Iterates over the @ref List from front to back.
- * @param list_ptr              The pointer to a @ref List that will be iterated over.
  * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each(list_ptr, temp_name) \
-    for(ListNode *temp_name = list_ptr->head; temp_name != NULL; temp_name = temp_name->next)
+#define list_for_each(temp_name, list_ptr) \
+    for (ListNode *temp_name = list_ptr->head; temp_name != NULL; temp_name = temp_name->next)
 
 /**
  * @function                    list_for_each_reverse
  * @brief                       Iterates over the @ref List from back to front.
- * @param list_ptr              The pointer to a @ref List that will be iterated over.
  * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each_reverse(list_ptr, temp_name) \
-    for(ListNode *temp_name = list_ptr->tail; temp_name != NULL; temp_name = temp_name->prev)
+#define list_for_each_reverse(temp_name, list_ptr) \
+    for (ListNode *temp_name = list_ptr->tail; temp_name != NULL; temp_name = temp_name->prev)
 
 #ifdef __cplusplus
 }
