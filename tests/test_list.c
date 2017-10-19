@@ -120,58 +120,6 @@ void test_list_to_array(void) {
     array = NULL;
 }
 
-void test_list_find(void) {
-    // Test on empty list.
-    List *list = list_create(test_malloc, test_free, NULL);
-    assert(list_find(list, &list) == NULL);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list with data in the list. No two nodes contain the same data. Assume list_push_back
-    // works as intended.
-    list = list_create(test_malloc, test_free, NULL);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    assert(list_find(list, static_var2) == list->head->next);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list with data not in the list. No two nodes contain the same data. Assume
-    // list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    assert(list_find(list, &list) == NULL);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list with data in the list. All nodes contain the same data. Assume list_push_back
-    // works as intended. Make sure the first node is returned.
-    list = list_create(test_malloc, test_free, NULL);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    assert(list_find(list, static_var1) == list->head);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list with data not in the list. All nodes contain the same data. Assume
-    // list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var1);
-    assert(list_find(list, &list) == NULL);
-    list_destroy(list);
-    list = NULL;
-}
-
 void test_list_position(void) {
     // Assume list_push_back works as intended.
     List *list = list_create(test_malloc, test_free, NULL);
@@ -1380,7 +1328,6 @@ void test_list_sort(void) {
 TestFunc test_funcs[] = {
     test_list_create_and_destroy,
     test_list_to_array,
-    test_list_find,
     test_list_position,
     test_list_at,
     test_list_insert,
@@ -1399,7 +1346,7 @@ TestFunc test_funcs[] = {
 };
 
 int main(void) {
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 18);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 17);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc));
     return 0;
 }

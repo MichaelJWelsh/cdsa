@@ -32,7 +32,6 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      -   @ref list_create
  *      -   @ref list_destroy
  *      -   @ref list_to_array
- *      -   @ref list_find
  *      -   @ref list_position
  *      -   @ref list_at
  *      -   @ref list_insert
@@ -119,16 +118,6 @@ void list_destroy(List *list);
  *                              for freeing this array.
  */
 void** list_to_array(List *list);
-
-/**
- * @function                    list_find
- * @brief                       Finds the first @ref ListNode containing the @param data in the @param list.
- * @param list                  The @ref List containing nodes.
- * @param data                  The value to search for.
- * @return                      The @ref ListNode containing the @param data, or NULL if not found.
- * @warning                     Undefined behavior if: @param list == NULL.
- */
-ListNode* list_find(List *list, void *data);
 
 /**
  * @function                    list_position

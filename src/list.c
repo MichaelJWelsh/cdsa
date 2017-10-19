@@ -429,7 +429,7 @@ void* list_pop_back(List *list) {
 // https://stackoverflow.com/questions/7685/merge-sort-a-linked-list
 void list_sort(List *list, int (*compare)(const void*, const void*)) {
     assert(list != NULL && compare != NULL);
-    
+
     if (list->size < 2) {
         return;
     }
