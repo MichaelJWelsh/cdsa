@@ -286,11 +286,11 @@ void* list_pop_back(List *list);
  *                              complexity, O(1) space complexity. The time-space complexity is achieved
  *                              through an iterative sort rather than a recursive one.
  * @param list                  The @ref List to sort.
- * @param compare               The compare function to be used. The data members of the two @ref ListNode's
+ * @param compare_data          The compare function to be used. The data members of the two @ref ListNode's
  *                              being compared is passed to this function.
  * @warning                     Undefined behavior if: @param list == NULL, or @param compare == NULL.
  */
-void list_sort(List *list, int (*compare)(const void*, const void*));
+void list_sort(List *list, int (*compare_data)(const void*, const void*));
 
 /**
  * @function                    list_for_each
