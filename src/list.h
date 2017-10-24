@@ -301,7 +301,7 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  *                              results in undefined behavior.
  */
 #define list_for_each(temp_name, list_ptr) \
-    for (ListNode *temp_name = list_ptr->head; temp_name != NULL; temp_name = temp_name->next)
+    for (ListNode *temp_name = (list_ptr)->head; temp_name != NULL; temp_name = temp_name->next)
 
 /**
  * @function                    list_for_each_reverse
@@ -312,7 +312,7 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  *                              results in undefined behavior.
  */
 #define list_for_each_reverse(temp_name, list_ptr) \
-    for (ListNode *temp_name = list_ptr->tail; temp_name != NULL; temp_name = temp_name->prev)
+    for (ListNode *temp_name = (list_ptr)->tail; temp_name != NULL; temp_name = temp_name->prev)
 
 #ifdef __cplusplus
 }
