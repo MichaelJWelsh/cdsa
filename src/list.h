@@ -297,6 +297,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @brief                       Iterates over the @ref List from front to back.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
+ * @warning                     Insertion/deletion operations of any kind on the @ref List being iterated over
+ *                              results in undefined behavior.
  */
 #define list_for_each(temp_name, list_ptr) \
     for (ListNode *temp_name = list_ptr->head; temp_name != NULL; temp_name = temp_name->next)
@@ -306,6 +308,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @brief                       Iterates over the @ref List from back to front.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
+ * @warning                     Insertion/deletion operations of any kind on the @ref List being iterated over
+ *                              results in undefined behavior.
  */
 #define list_for_each_reverse(temp_name, list_ptr) \
     for (ListNode *temp_name = list_ptr->tail; temp_name != NULL; temp_name = temp_name->prev)
