@@ -290,10 +290,8 @@ ListNode* list_push_back(List *list, void *data) {
 void list_clear(List *list) {
     assert(list != NULL);
 
-    // If list is empty, return. Under no circumstance should an empty list have non-null head/tail pointers.
+    // If list is already empty, return.
     if (list->size == 0) {
-        assert(list->head == NULL);
-        assert(list->tail == NULL);
         return;
     }
 

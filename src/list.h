@@ -29,6 +29,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      -   Can optionally take ownership over stored data and automatically free it when necessary.
  *
  * API:
+ *      ====  FUNCTIONS  ====
  *      -   @ref list_create
  *      -   @ref list_destroy
  *      -   @ref list_to_array
@@ -47,8 +48,20 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      -   @ref list_pop_front
  *      -   @ref list_pop_back
  *      -   @ref list_sort
+ *
+ *      ====  MACROS  ====
  *      -   @ref list_for_each
  *      -   @ref list_for_each_reverse
+ *      -   @ref list_for_each_safe
+ *      -   @ref list_for_each_safe_reverse
+ *      -   @ref list_for_each_continue
+ *      -   @ref list_for_each_continue_reverse
+ *      -   @ref list_for_each_safe_continue
+ *      -   @ref list_for_each_safe_continue_reverse
+ *      -   @ref list_for_each_from
+ *      -   @ref list_for_each_from_reverse
+ *      -   @ref list_for_each_safe_from
+ *      -   @ref list_for_each_safe_from_reverse
  */
 
 #ifndef LIST_H__
@@ -297,22 +310,188 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @brief                       Iterates over the @ref List from front to back.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
- * @warning                     Insertion/deletion operations of any kind on the @ref List being iterated over
- *                              results in undefined behavior.
+ * @warning                     Undefined behavior if: @param list_ptr == NULL, or the @ref ListNode
+ *                              @param temp_name is reassigned/removed.
  */
 #define list_for_each(temp_name, list_ptr) \
-    for (ListNode *temp_name = (list_ptr)->head; temp_name != NULL; temp_name = temp_name->next)
+    for (ListNode *temp_name = (list_ptr)->head; temp_name; temp_name = temp_name->next)
 
 /**
  * @function                    list_for_each_reverse
  * @brief                       Iterates over the @ref List from back to front.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
- * @warning                     Insertion/deletion operations of any kind on the @ref List being iterated over
- *                              results in undefined behavior.
+ * @warning                     Undefined behavior if: @param list_ptr == NULL, or the @ref ListNode
+ *                              @param temp_name is reassigned/removed.
  */
 #define list_for_each_reverse(temp_name, list_ptr) \
-    for (ListNode *temp_name = (list_ptr)->tail; temp_name != NULL; temp_name = temp_name->prev)
+    for (ListNode *temp_name = (list_ptr)->tail; temp_name; temp_name = temp_name->prev)
+
+/**
+ * @function                    list_for_each_safe
+ * @brief                       Iterates over the @ref List from front to back, and is safe against
+ *                              reassignment and/or removal of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param list_ptr              The pointer to a @ref List that will be iterated over.
+ * @warning                     Undefined behavior if: @param list_ptr == NULL.
+ */
+#define list_for_each_safe(temp_name, list_ptr) \
+    for ( \
+        ListNode *temp_name = (list_ptr)->head, \
+        *next_ ## __LINE__ = (list_ptr)->head ? (list_ptr)->head->next : NULL; \
+        temp_name; \
+        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+    )
+
+/**
+ * @function                    list_for_each_safe_reverse
+ * @brief                       Iterates over the @ref List from back to front, and is safe against
+ *                              reassignment and/or removal of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param list_ptr              The pointer to a @ref List that will be iterated over.
+ * @warning                     Undefined behavior if: @param list_ptr == NULL.
+ */
+#define list_for_each_safe_reverse(temp_name, list_ptr) \
+    for ( \
+        ListNode *temp_name = (list_ptr)->tail, \
+        *prev_ ## __LINE__ = (list_ptr)->tail ? (list_ptr)->tail->prev : NULL; \
+        temp_name; \
+        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+    )
+
+/**
+ * @function                    list_for_each_continue
+ * @brief                       Continues iterating over the @ref List, continuing AFTER the
+ *                              @param current_listnode_ptr.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
+ *                              will be the initial value of the @ref ListNode @param temp_name.
+ * @warning                     Undefined behavior if: @ref ListNode @param temp_name is reassigned/removed.
+ */
+#define list_for_each_continue(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->next : NULL; \
+        temp_name; \
+        temp_name = temp_name->next \
+    )
+
+/**
+ * @function                    list_for_each_continue_reverse
+ * @brief                       Continues iterating in reverse order over the @ref List, continuing AFTER the
+ *                              @param current_listnode_ptr.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
+ *                              will be the initial value of the @ref ListNode @param temp_name.
+ * @warning                     Undefined behavior if: @ref ListNode @param temp_name is reassigned/removed.
+ */
+#define list_for_each_continue_reverse(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
+        temp_name; \
+        temp_name = temp_name->prev \
+    )
+
+/**
+ * @function                    list_for_each_safe_continue
+ * @brief                       Continues iterating over the @ref List, continuing AFTER the
+ *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
+ *                              of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
+ *                              will be the initial value of the @ref ListNode @param temp_name.
+ */
+#define list_for_each_safe_continue(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->next : NULL, \
+        *next_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) && \
+            ((ListNode*)(current_listnode_ptr))->next ? \
+                ((ListNode*)(current_listnode_ptr))->next->next : NULL; \
+        temp_name; \
+        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+    )
+
+/**
+ * @function                    list_for_each_safe_continue_reverse
+ * @brief                       Continues iterating in reverse order over the @ref List, continuing AFTER the
+ *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
+ *                              of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
+ *                              will be the initial value of the @ref ListNode @param temp_name.
+ */
+#define list_for_each_safe_continue_reverse(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->prev : NULL, \
+        *prev_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) && \
+            ((ListNode*)(current_listnode_ptr))->prev ? \
+                ((ListNode*)(current_listnode_ptr))->prev->prev : NULL; \
+        temp_name; \
+        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+    )
+
+/**
+ * @function                    list_for_each_from
+ * @brief                       Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the
+ *                              @param current_listnode_ptr.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
+ *                              @ref ListNode @param temp_name.
+ * @warning                     Undefined behavior if: @ref ListNode @param temp_name is reassigned/removed.
+ */
+#define list_for_each_from(temp_name, current_listnode_ptr) \
+    for (ListNode *temp_name = ((ListNode*)(current_listnode_ptr)); temp_name; temp_name = temp_name->next)
+
+/**
+ * @function                    list_for_each_from_reverse
+ * @brief                       Continues iterating in reverse order over the @ref List, continuing FROM
+ *                              (INCLUSIVE) the @param current_listnode_ptr.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
+ *                              @ref ListNode @param temp_name.
+ * @warning                     Undefined behavior if: @ref ListNode @param temp_name is reassigned/removed.
+ */
+#define list_for_each_from_reverse(temp_name, current_listnode_ptr) \
+    for (ListNode *temp_name = ((ListNode*)(current_listnode_ptr)); temp_name; temp_name = temp_name->prev)
+
+/**
+ * @function                    list_for_each_safe_from
+ * @brief                       Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the
+ *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
+ *                              of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
+ *                              @ref ListNode @param temp_name.
+ */
+#define list_for_each_safe_from(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
+        *next_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->next : NULL; \
+        temp_name; \
+        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+    )
+
+/**
+ * @function                    list_for_each_safe_from_reverse
+ * @brief                       Continues iterating in reverse order over the @ref List, continuing FROM
+ *                              (INCLUSIVE) the @param current_listnode_ptr, and is safe against reassignment
+ *                              and/or removal of the @ref ListNode @param temp_name.
+ * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
+ *                              @ref ListNode @param temp_name.
+ */
+#define list_for_each_safe_from_reverse(temp_name, current_listnode_ptr) \
+    for ( \
+        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
+        *prev_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
+        temp_name; \
+        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+    )
 
 #ifdef __cplusplus
 }

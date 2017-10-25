@@ -1325,6 +1325,792 @@ void test_list_sort(void) {
     tail = NULL;
 }
 
+void test_list_traversal_macros(void) {
+    void *static_var_ptrs[] = {static_var1, static_var2, static_var3, static_var4, static_var5};
+
+    // Test list_for_each on empty list.
+    List *list = list_create(test_malloc, test_free, NULL);
+    size_t i = 0;
+    list_for_each(n, list) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_reverse on empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_reverse(n, list) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe on empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe(n, list) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_reverse on empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe_reverse(n, list) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_continue on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_continue(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_continue_reverse on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_continue_reverse(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_continue on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe_continue(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_continue_reverse on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe_continue_reverse(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_from on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_from(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_from_reverse on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_from_reverse(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_from on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe_from(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_from_reverse on NULL input.
+    list = list_create(test_malloc, test_free, NULL);
+    i = 0;
+    list_for_each_safe_from_reverse(n, NULL) {
+        ++i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test list_for_each on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    ListNode *head = list_push_back(list, static_var1);
+    ListNode *second = list_push_back(list, static_var2);
+    ListNode *third = list_push_back(list, static_var3);
+    ListNode *fourth = list_push_back(list, static_var4);
+    ListNode *tail = list_push_back(list, static_var5);
+    i = 0;
+    list_for_each(n, list) {
+        assert(n->data == static_var_ptrs[i]);
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_reverse(n, list) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = 0;
+    list_for_each_safe(n, list) {
+        assert(n->data == static_var_ptrs[i]);
+        n = NULL;
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_reverse on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_reverse(n, list) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        n = NULL;
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_continue on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = 1;
+    list_for_each_continue(n, list->head) {
+        assert(n->data == static_var_ptrs[i]);
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_continue_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size - 1;
+    list_for_each_continue_reverse(n, list->tail) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_continue on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = 1;
+    list_for_each_safe_continue(n, list->head) {
+        assert(n->data == static_var_ptrs[i]);
+        n = NULL;
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_continue_reverse on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size - 1;
+    list_for_each_safe_continue_reverse(n, list->tail) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        n = NULL;
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_from on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = 0;
+    list_for_each_from(n, list->head) {
+        assert(n->data == static_var_ptrs[i]);
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_from_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_from_reverse(n, list->tail) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_from on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = 0;
+    list_for_each_safe_from(n, list->head) {
+        assert(n->data == static_var_ptrs[i]);
+        n = NULL;
+        ++i;
+    }
+    assert(i == list->size);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test list_for_each_safe_from_reverse on non-empty list, and simultaneously test reassignment.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    second = list_push_back(list, static_var2);
+    third = list_push_back(list, static_var3);
+    fourth = list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_from_reverse(n, list->tail) {
+        assert(n->data == static_var_ptrs[i - 1]);
+        n = NULL;
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 5);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == second);
+    assert(second->data == static_var2);
+    assert(second->prev == head);
+    assert(second->next == third);
+    assert(third->data == static_var3);
+    assert(third->prev == second);
+    assert(third->next == fourth);
+    assert(fourth->data == static_var4);
+    assert(fourth->prev == third);
+    assert(fourth->next == tail);
+    assert(tail->data == static_var5);
+    assert(tail->prev == fourth);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    second = NULL;
+    third = NULL;
+    fourth = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe(n, list) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_reverse(n, list) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe_continue on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    head = list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_continue(n, list->head) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 1);
+    assert(list->head == head);
+    assert(list->tail == head);
+    assert(list->size == 1);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe_continue_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    tail = list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_continue_reverse(n, list->tail) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 1);
+    assert(list->head == tail);
+    assert(list->tail == tail);
+    assert(list->size == 1);
+    assert(tail->data == static_var5);
+    assert(tail->prev == NULL);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    tail = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe_from on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_from(n, list->head) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+
+    // Test node removal using list_for_each_safe_from_reverse on non-empty list.
+    list = list_create(test_malloc, test_free, NULL);
+    list_push_back(list, static_var1);
+    list_push_back(list, static_var2);
+    list_push_back(list, static_var3);
+    list_push_back(list, static_var4);
+    list_push_back(list, static_var5);
+    i = list->size;
+    list_for_each_safe_from_reverse(n, list->tail) {
+        list_delete_node(list, n);
+        --i;
+    }
+    assert(i == 0);
+    assert(list->head == NULL);
+    assert(list->tail == NULL);
+    assert(list->size == 0);
+    list_destroy(list);
+    list = NULL;
+    i = 100;
+}
+
 TestFunc test_funcs[] = {
     test_list_create_and_destroy,
     test_list_to_array,
@@ -1342,11 +2128,12 @@ TestFunc test_funcs[] = {
     test_list_delete_right,
     test_list_pop_front,
     test_list_pop_back,
-    test_list_sort
+    test_list_sort,
+    test_list_traversal_macros
 };
 
 int main(void) {
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 17);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 18);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc));
     return 0;
 }
