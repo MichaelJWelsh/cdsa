@@ -338,9 +338,9 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 #define list_for_each_safe(temp_name, list_ptr) \
     for ( \
         ListNode *temp_name = (list_ptr)->head, \
-        *next_ ## __LINE__ = (list_ptr)->head ? (list_ptr)->head->next : NULL; \
+        *cpy_ ## __LINE__ = (list_ptr)->head; \
         temp_name; \
-        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
     )
 
 /**
@@ -354,9 +354,9 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 #define list_for_each_safe_reverse(temp_name, list_ptr) \
     for ( \
         ListNode *temp_name = (list_ptr)->tail, \
-        *prev_ ## __LINE__ = (list_ptr)->tail ? (list_ptr)->tail->prev : NULL; \
+        *cpy_ ## __LINE__ = (list_ptr)->tail; \
         temp_name; \
-        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
     )
 
 /**
@@ -406,11 +406,10 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
     for ( \
         ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
             ((ListNode*)(current_listnode_ptr))->next : NULL, \
-        *next_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) && \
-            ((ListNode*)(current_listnode_ptr))->next ? \
-                ((ListNode*)(current_listnode_ptr))->next->next : NULL; \
+        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->next : NULL; \
         temp_name; \
-        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
     )
 
 /**
@@ -426,11 +425,10 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
     for ( \
         ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) ? \
             ((ListNode*)(current_listnode_ptr))->prev : NULL, \
-        *prev_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) && \
-            ((ListNode*)(current_listnode_ptr))->prev ? \
-                ((ListNode*)(current_listnode_ptr))->prev->prev : NULL; \
+        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
+            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
         temp_name; \
-        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
     )
 
 /**
@@ -469,10 +467,9 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 #define list_for_each_safe_from(temp_name, current_listnode_ptr) \
     for ( \
         ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
-        *next_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
-            ((ListNode*)(current_listnode_ptr))->next : NULL; \
+        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)); \
         temp_name; \
-        temp_name = next_ ## __LINE__, next_ ## __LINE__ = temp_name ? temp_name->next : NULL \
+        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
     )
 
 /**
@@ -487,10 +484,9 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 #define list_for_each_safe_from_reverse(temp_name, current_listnode_ptr) \
     for ( \
         ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
-        *prev_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) ? \
-            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
+        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)); \
         temp_name; \
-        temp_name = prev_ ## __LINE__, prev_ ## __LINE__ = temp_name ? temp_name->prev : NULL \
+        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
     )
 
 #ifdef __cplusplus
