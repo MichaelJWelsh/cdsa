@@ -372,7 +372,12 @@ void* list_delete(List *list, size_t index) {
 }
 
 void* list_delete_node(List *list, ListNode *node) {
-    assert(list != NULL && node != NULL);
+    assert(list != NULL);
+
+    // Do nothing if argument is NULL.
+    if (node == NULL) {
+        return NULL;
+    }
 
     if (node->prev == NULL) {
         list->head = node->next;

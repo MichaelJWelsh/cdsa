@@ -696,8 +696,27 @@ void test_list_delete(void) {
 }
 
 void test_list_delete_node(void) {
-    // Test deletion on single-node list without ownership.
+    // Test deletion with NULL input.
     List *list = list_create(test_malloc, test_free, NULL);
+    ListNode *head = list_push_back(list, static_var1);
+    ListNode *tail = list_push_back(list, static_var2);
+    assert(list_delete_node(list, NULL) == NULL);
+    assert(list->head == head);
+    assert(list->tail == tail);
+    assert(list->size == 2);
+    assert(head->data == static_var1);
+    assert(head->prev == NULL);
+    assert(head->next == tail);
+    assert(tail->data == static_var2);
+    assert(tail->prev == head);
+    assert(tail->next == NULL);
+    list_destroy(list);
+    list = NULL;
+    head = NULL;
+    tail = NULL;
+
+    // Test deletion on single-node list without ownership.
+    list = list_create(test_malloc, test_free, NULL);
     ListNode *node = list_push_back(list, static_var1);
     assert(list_delete_node(list, node) == static_var1);
     assert(list->head == NULL);
@@ -723,8 +742,8 @@ void test_list_delete_node(void) {
 
     // Test deletion on head of multi-node list without ownership.
     list = list_create(test_malloc, test_free, NULL);
-    ListNode *head = list_push_back(list, static_var1);
-    ListNode *tail = list_push_back(list, static_var2);
+    head = list_push_back(list, static_var1);
+    tail = list_push_back(list, static_var2);
     assert(list_delete_node(list, head) == static_var1);
     assert(list->head == tail);
     assert(list->tail == tail);
