@@ -238,8 +238,7 @@ void* list_delete(List *list, size_t index);
 
 /**
  * @function                    list_delete_node
- * @brief                       Removes the @param node from the @param list. If @param node == NULL, nothing
- *                              happens and function returns NULL.
+ * @brief                       Removes the @param node from the @param list.
  * @param list                  The @ref List containing the @param node to be removed.
  * @param node                  The @ref ListNode to be removed.
  * @return                      NULL if @param node is NULL, or the @param list has ownership of the stored
