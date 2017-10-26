@@ -241,11 +241,10 @@ void* list_delete(List *list, size_t index);
  * @brief                       Removes the @param node from the @param list.
  * @param list                  The @ref List containing the @param node to be removed.
  * @param node                  The @ref ListNode to be removed.
- * @return                      NULL if @param node is NULL, or the @param list has ownership of the stored
- *                              data to be removed, otherwise returns the stored data in the removed
- *                              @param node.
- * @warning                     Undefined behavior if: @param list == NULL, or @param node is not NULL and is
- *                              not in @param list.
+ * @return                      NULL if the @param list has ownership of the stored data to be removed,
+ *                              otherwise returns the stored data in the removed @param node.
+ * @warning                     Undefined behavior if: @param list == NULL, @param node == NULL, or
+ *                              @param node is not in @param list.
  */
 void* list_delete_node(List *list, ListNode *node);
 
