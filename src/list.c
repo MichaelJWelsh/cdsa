@@ -137,7 +137,7 @@ ListNode* list_at(List *list, size_t index) {
     return NULL;
 }
 
-ListNode* list_insert(List *list, void *data, size_t index) {
+ListNode* list_insert_at(List *list, void *data, size_t index) {
     assert(list != NULL && index <= list->size);
 
     ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
@@ -315,7 +315,7 @@ void list_clear(List *list) {
     list->size = 0;
 }
 
-void* list_delete(List *list, size_t index) {
+void* list_delete_at(List *list, size_t index) {
     assert(list != NULL && index < list->size);
 
     ListNode *node_at_index;
@@ -372,7 +372,11 @@ void* list_delete(List *list, size_t index) {
 }
 
 void* list_delete_node(List *list, ListNode *node) {
-    assert(list != NULL && node != NULL);
+    assert(list != NULL);
+
+    if (node == NULL) {
+        return NULL;
+    }
 
     if (node->prev == NULL) {
         list->head = node->next;
@@ -398,26 +402,14 @@ void* list_delete_node(List *list, ListNode *node) {
     }
 }
 
-void* list_delete_left(List *list, ListNode *node) {
-    assert(list != NULL && node != NULL && list->head != node);
-
-    return list_delete_node(list, node->prev);
-}
-
-void* list_delete_right(List *list, ListNode *node) {
-    assert(list != NULL && node != NULL && list->tail != node);
-
-    return list_delete_node(list, node->next);
-}
-
 void* list_pop_front(List *list) {
-    assert(list != NULL && list->head != NULL);
+    assert(list != NULL);
 
     return list_delete_node(list, list->head);
 }
 
 void* list_pop_back(List *list) {
-    assert(list != NULL && list->tail != NULL);
+    assert(list != NULL);
 
     return list_delete_node(list, list->tail);
 }

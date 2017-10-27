@@ -23,11 +23,6 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * Dependencies:
  *      -   C99 standard library
  *
- * Unique Features:
- *      -   Supports accessing nodes by index.
- *      -   Allows you to define what functions to call for memory allocation/deallocation.
- *      -   Can optionally take ownership over stored data and automatically free it when necessary.
- *
  * API:
  *      ====  FUNCTIONS  ====
  *      -   @ref list_create
@@ -35,16 +30,14 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      -   @ref list_to_array
  *      -   @ref list_position
  *      -   @ref list_at
- *      -   @ref list_insert
+ *      -   @ref list_insert_at
  *      -   @ref list_insert_left
  *      -   @ref list_insert_right
  *      -   @ref list_push_front
  *      -   @ref list_push_back
  *      -   @ref list_clear
- *      -   @ref list_delete
+ *      -   @ref list_delete_at
  *      -   @ref list_delete_node
- *      -   @ref list_delete_left
- *      -   @ref list_delete_right
  *      -   @ref list_pop_front
  *      -   @ref list_pop_back
  *      -   @ref list_sort
@@ -122,8 +115,9 @@ void list_destroy(List *list);
 
 /**
  * @function                    list_to_array
- * @brief                       Dynamically allocates an array of pointers-to-void of size list->size.
- *                              list->list_malloc is used to dynamically allocate this array.
+ * @brief                       Dynamically allocates an array of pointers-to-void (pointers to what the data
+ *                              pointers point to in each @ref ListNode) of size list->size. list->list_malloc
+ *                              is used to dynamically allocate this array.
  * @param list                  The @ref List to be used to create the array.
  * @return                      NULL if allocation failed, otherwise the memory address of the newly created
  *                              array of pointers-to-void (i.e. pointers to data).
@@ -154,7 +148,7 @@ size_t list_position(List *list, ListNode *node);
 ListNode* list_at(List *list, size_t index);
 
 /**
- * @function                    list_insert
+ * @function                    list_insert_at
  * @brief                       Inserts a new @ref ListNode with value @param data at position @param index.
  * @param list                  The @ref List to be operated on.
  * @param data                  The data of the new @ref ListNode.
@@ -164,7 +158,7 @@ ListNode* list_at(List *list, size_t index);
  * @warning                     Undefined behavior if: @param list == NULL, or @param index greater than the
  *                              size of @param list.
  */
-ListNode* list_insert(List *list, void *data, size_t index);
+ListNode* list_insert_at(List *list, void *data, size_t index);
 
 /**
  * @function                    list_insert_left
@@ -226,7 +220,7 @@ ListNode* list_push_back(List *list, void *data);
 void list_clear(List *list);
 
 /**
- * @function                    list_delete
+ * @function                    list_delete_at
  * @brief                       Removes the @ref ListNode at @param index from the @param list.
  * @param list                  The @ref List containing the @ref ListNode to be removed.
  * @param index                 The index of the @ref ListNode in the @param list to remove.
@@ -234,61 +228,41 @@ void list_clear(List *list);
  *                              otherwise returns the stored data in the removed @ref ListNode.
  * @warning                     Undefined behavior if: @param list == NULL, or @param index is out of bounds.
  */
-void* list_delete(List *list, size_t index);
+void* list_delete_at(List *list, size_t index);
 
 /**
  * @function                    list_delete_node
- * @brief                       Removes the @param node from the @param list.
+ * @brief                       Removes the @param node from the @param list. If @param node is a NULL
+ *                              pointer, this function simply returns NULL.
  * @param list                  The @ref List containing the @param node to be removed.
  * @param node                  The @ref ListNode to be removed.
- * @return                      NULL if the @param list has ownership of the stored data to be removed,
- *                              otherwise returns the stored data in the removed @param node.
- * @warning                     Undefined behavior if: @param list == NULL, @param node == NULL, or
- *                              @param node is not in @param list.
+ * @return                      NULL if @param node == NULL or the @param list has ownership of the stored
+ *                              data to be removed, otherwise returns the stored data in the removed
+ *                              @param node.
+ * @warning                     Undefined behavior if: @param list == NULL, or @param node is not NULL and is
+ *                              not in @param list.
  */
 void* list_delete_node(List *list, ListNode *node);
 
 /**
- * @function                    list_delete_left
- * @brief                       Removes the @ref ListNode to the left of @param node.
- * @param list                  The @ref List containing the @ref ListNode to be removed.
- * @param node                  The @ref ListNode which is used as a reference point.
- * @return                      NULL if the @param list has ownership of the stored data to be removed,
- *                              otherwise returns the stored data in the removed @ref ListNode.
- * @warning                     Undefined behavior if: @param list == NULL, @param node == NULL, @param node
- *                              is not in @param list, or @param list->head == @param node.
- */
-void* list_delete_left(List *list, ListNode *node);
-
-/**
- * @function                    list_delete_right
- * @brief                       Removes the @ref ListNode to the right of @param node.
- * @param list                  The @ref List containing the @ref ListNode to be removed.
- * @param node                  The @ref ListNode which is used as a reference point.
- * @return                      NULL if the @param list has ownership of the stored data to be removed,
- *                              otherwise returns the stored data in the removed @ref ListNode.
- * @warning                     Undefined behavior if: @param list == NULL, @param node == NULL, @param node
- *                              is not in @param list, or @param list->tail == @param node.
- */
-void* list_delete_right(List *list, ListNode *node);
-
-/**
  * @function                    list_pop_front
- * @brief                       Removes the front @ref ListNode from the @param list.
+ * @brief                       Removes the front @ref ListNode from the @param list. If the @param list is
+ *                              empty, this function simply returns NULL.
  * @param list                  The @ref List containing the @ref ListNode to be removed.
  * @return                      NULL if the @param list has ownership of the stored data to be removed,
  *                              otherwise returns the stored data in the removed @ref ListNode.
- * @warning                     Undefined behavior if: @param list == NULL, or the @param list is empty.
+ * @warning                     Undefined behavior if: @param list == NULL.
  */
 void* list_pop_front(List *list);
 
 /**
  * @function                    list_pop_back
- * @brief                       Removes the back @ref ListNode from the @param list.
+ * @brief                       Removes the back @ref ListNode from the @param list. If the @param list is
+ *                              empty, this function simply returns NULL.
  * @param list                  The @ref List containing the @ref ListNode to be removed.
  * @return                      NULL if the @param list has ownership of the stored data to be removed,
  *                              otherwise returns the stored data in the removed @ref ListNode.
- * @warning                     Undefined behavior if: @param list == NULL, or the @param list is empty.
+ * @warning                     Undefined behavior if: @param list == NULL.
  */
 void* list_pop_back(List *list);
 
@@ -362,7 +336,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 /**
  * @function                    list_for_each_continue
  * @brief                       Continues iterating over the @ref List, continuing AFTER the
- *                              @param current_listnode_ptr.
+ *                              @param current_listnode_ptr. If either @param current_listnode_ptr or the
+ *                              @ref ListNode AFTER it is NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
  *                              will be the initial value of the @ref ListNode @param temp_name.
@@ -379,7 +354,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 /**
  * @function                    list_for_each_continue_reverse
  * @brief                       Continues iterating in reverse order over the @ref List, continuing AFTER the
- *                              @param current_listnode_ptr.
+ *                              @param current_listnode_ptr. If either @param current_listnode_ptr or the
+ *                              @ref ListNode AFTER it is NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
  *                              will be the initial value of the @ref ListNode @param temp_name.
@@ -397,7 +373,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @function                    list_for_each_safe_continue
  * @brief                       Continues iterating over the @ref List, continuing AFTER the
  *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
- *                              of the @ref ListNode @param temp_name.
+ *                              of the @ref ListNode @param temp_name. If either @param current_listnode_ptr
+ *                              or the @ref ListNode AFTER it is NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
  *                              will be the initial value of the @ref ListNode @param temp_name.
@@ -416,7 +393,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @function                    list_for_each_safe_continue_reverse
  * @brief                       Continues iterating in reverse order over the @ref List, continuing AFTER the
  *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
- *                              of the @ref ListNode @param temp_name.
+ *                              of the @ref ListNode @param temp_name. If either @param current_listnode_ptr
+ *                              or the @ref ListNode AFTER it is NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
  *                              will be the initial value of the @ref ListNode @param temp_name.
@@ -434,7 +412,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 /**
  * @function                    list_for_each_from
  * @brief                       Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the
- *                              @param current_listnode_ptr.
+ *                              @param current_listnode_ptr. If @param current_listnode_ptr is NULL, the
+ *                              loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
  *                              @ref ListNode @param temp_name.
@@ -446,7 +425,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
 /**
  * @function                    list_for_each_from_reverse
  * @brief                       Continues iterating in reverse order over the @ref List, continuing FROM
- *                              (INCLUSIVE) the @param current_listnode_ptr.
+ *                              (INCLUSIVE) the @param current_listnode_ptr. If @param current_listnode_ptr is
+ *                              NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
  *                              @ref ListNode @param temp_name.
@@ -459,7 +439,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @function                    list_for_each_safe_from
  * @brief                       Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the
  *                              @param current_listnode_ptr, and is safe against reassignment and/or removal
- *                              of the @ref ListNode @param temp_name.
+ *                              of the @ref ListNode @param temp_name. If @param current_listnode_ptr is NULL,
+ *                              the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
  *                              @ref ListNode @param temp_name.
@@ -476,7 +457,8 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * @function                    list_for_each_safe_from_reverse
  * @brief                       Continues iterating in reverse order over the @ref List, continuing FROM
  *                              (INCLUSIVE) the @param current_listnode_ptr, and is safe against reassignment
- *                              and/or removal of the @ref ListNode @param temp_name.
+ *                              and/or removal of the @ref ListNode @param temp_name. If
+ *                              @param current_listnode_ptr is NULL, the loop's body will not execute.
  * @param temp_name             The temporary variable name used in the loop's scope.
  * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
  *                              @ref ListNode @param temp_name.
