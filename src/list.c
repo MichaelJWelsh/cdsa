@@ -140,59 +140,13 @@ ListNode* list_at(List *list, size_t index) {
 ListNode* list_insert_at(List *list, void *data, size_t index) {
     assert(list != NULL && index <= list->size);
 
-    ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
-    if (new_node == NULL) {
-        return NULL;
-    }
-    new_node->data = data;
-
-    if (list->size == 0) {
-        new_node->prev = NULL;
-        new_node->next = NULL;
-        list->head = new_node;
-        list->tail = new_node;
-    } else if (index == 0) {
-        new_node->prev = NULL;
-        new_node->next = list->head;
-        list->head->prev = new_node;
-        list->head = new_node;
+    if (index == 0) {
+        return list_push_front(list, data);
     } else if (index == list->size) {
-        new_node->prev = list->tail;
-        new_node->next = NULL;
-        list->tail->next = new_node;
-        list->tail = new_node;
+        return list_push_back(list, data);
     } else {
-        ListNode *node_at_index;
-
-        // Figure out if it's relatively quicker to iterate from front to back or back to front.
-        if (index < list->size / 2) {
-            size_t i = 0;
-            list_for_each(n, list) {
-                if (i == index) {
-                    node_at_index = n;
-                    break;
-                }
-                ++i;
-            }
-        } else {
-            size_t i = list->size - 1;
-            list_for_each_reverse(n, list) {
-                if (i == index) {
-                    node_at_index = n;
-                    break;
-                }
-                --i;
-            }
-        }
-
-        new_node->prev = node_at_index->prev;
-        new_node->next = node_at_index;
-        node_at_index->prev->next = new_node;
-        node_at_index->prev = new_node;
+        return list_insert_left(list, data, list_at(list, index));
     }
-    ++list->size;
-
-    return new_node;
 }
 
 ListNode* list_insert_left(List *list, void *data, ListNode *node) {
@@ -318,56 +272,12 @@ void list_clear(List *list) {
 void* list_delete_at(List *list, size_t index) {
     assert(list != NULL && index < list->size);
 
-    ListNode *node_at_index;
-
-    if (list->size == 1) {
-        node_at_index = list->head;
-        list->head = NULL;
-        list->tail = NULL;
-    } else if (index == 0) {
-        node_at_index = list->head;
-        list->head->next->prev = NULL;
-        list->head = list->head->next;
+    if (index == 0) {
+        return list_delete_node(list, list->head);
     } else if (index == list->size - 1) {
-        node_at_index = list->tail;
-        list->tail->prev->next = NULL;
-        list->tail = list->tail->prev;
+        return list_delete_node(list, list->tail);
     } else {
-        // Figure out if its relatively quicker to iterate from front to back or back to front.
-        if (index < list->size / 2) {
-            size_t i = 0;
-            list_for_each(n, list) {
-                if (i == index) {
-                    node_at_index = n;
-                    break;
-                }
-                ++i;
-            }
-        } else {
-            size_t i = list->size - 1;
-            list_for_each_reverse(n, list) {
-                if (i == index) {
-                    node_at_index = n;
-                    break;
-                }
-                --i;
-            }
-        }
-
-        node_at_index->prev->next = node_at_index->next;
-        node_at_index->next->prev = node_at_index->prev;
-    }
-    --list->size;
-
-    // Only free data if list has ownership.
-    if (list->data_free != NULL) {
-        list->data_free(node_at_index->data);
-        list->list_free(node_at_index);
-        return NULL;
-    } else {
-        void *data = node_at_index->data;
-        list->list_free(node_at_index);
-        return data;
+        return list_delete_node(list, list_at(list, index));
     }
 }
 
