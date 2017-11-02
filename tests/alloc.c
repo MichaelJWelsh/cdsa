@@ -20,9 +20,14 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <assert.h>
 
 #include "alloc.h"
+
+/* ========================================================================================================
+ *
+ *                                        STATIC STRUCTURES & VARIABLES
+ *
+ * ======================================================================================================== */
 
 /*
  * A very basic singly linked list implementation used internally by the alloc testing module. This data
@@ -39,10 +44,42 @@ typedef struct LinkedList__ {
  */
 static LinkedList *head = NULL;
 
+/* ========================================================================================================
+ *
+ *                                        STATIC FUNCTION PROTOTYPES
+ *
+ * ======================================================================================================== */
+
 /*
  * Completely clears the linked list of all nodes. Everything allocated by the test functions in this
- * translation unit is freed. Every address freed is printed to stderr.
+ * translation unit is freed. Can optionally have every address freed printed to stderr.
  */
+static void linkedlist_clear(bool print_addresses);
+
+/*
+ * Pushes a new node containing address into the front of the linked list.
+ */
+static void* linkedlist_push_front(void *address);
+
+/*
+ * Removes the node containing address and frees the data at the address. Aborts program if address is not in
+ * the linked list chain.
+ */
+static void linkedlist_remove(void *address);
+
+/*
+ * Tests if all resources allocated has been deallocated. If there are still resources that need to be
+ * deallocated, the memory address of those resources is printed to stderr and then they are properly freed.
+ * This function then aborts the program.
+ */
+static void test_assert_all_resources_free(void);
+
+/* ========================================================================================================
+ *
+ *                                        STATIC FUNCTION DEFINITIONS
+ *
+ * ======================================================================================================== */
+
 static void linkedlist_clear(bool print_addresses) {
     LinkedList *current = head;
     while (current != NULL) {
@@ -57,9 +94,6 @@ static void linkedlist_clear(bool print_addresses) {
     head = NULL;
 }
 
-/*
- * Pushes a new node containing address into the front of the linked list.
- */
 static void* linkedlist_push_front(void *address) {
     LinkedList *new_node = (LinkedList*) malloc(sizeof(LinkedList));
     if (new_node == NULL) {
@@ -76,10 +110,6 @@ static void* linkedlist_push_front(void *address) {
     return address;
 }
 
-/*
- * Removes the node containing address and frees the data at the address. Aborts program if address is not in
- * the linked list chain.
- */
 static void linkedlist_remove(void *address) {
     if (head != NULL && head->address == address) {
         free(address);
@@ -108,17 +138,18 @@ static void linkedlist_remove(void *address) {
     abort();
 }
 
-/*
- * Tests if all resources allocated has been deallocated. If there are still resources that need to be
- * deallocated, the memory address of those resources is printed to stderr and then they are properly freed.
- * This function then aborts the program.
- */
 static void test_assert_all_resources_free(void) {
     if (head != NULL) {
         linkedlist_clear(true);
         abort();
     }
 }
+
+/* ========================================================================================================
+ *
+ *                                        EXTERN FUNCTION DEFINITIONS
+ *
+ * ======================================================================================================== */
 
 void run_tests(TestFunc *test_funcs, size_t nitems) {
     for (size_t i = 0; i < nitems; ++i) {

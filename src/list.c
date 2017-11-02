@@ -22,8 +22,131 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "list.h"
 
+/* ========================================================================================================
+ *
+ *                                        STATIC FUNCTION PROTOTYPES
+ *
+ * ======================================================================================================== */
+
+/*
+ * Free's the node and, if the list has ownership, also frees the data stored inside the node.
+ *
+ * No reassignment takes place on the list or its members.
+ *
+ * Returns the data that was stored inside the node if the list does NOT have ownership; otherwise, returns
+ * NULL.
+ */
+static void* list_free_single_node__(List *list, ListNode *node);
+
+/*
+ * Free's all ListNodes in the list. If the list has ownership, the data stored in each ListNode is also
+ * freed.
+ *
+ * No reassignment takes place on the list or its members.
+ */
+static void list_free_all_nodes__(List *list);
+
+/*
+ * Inserts the range [from, to] into the list, resulting in the following ListNode connectivity:
+ *      ... <-> left <-> from <-> ... <-> to <-> right <-> ...
+ *
+ * The list's size is then incrememented to account for the new ListNode(s).
+ */
+static void list_insert_range__(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size);
+
+/*
+ * Removes the range [from, to] from the list, resulting in the following ListNode connectivity:
+ *      ... <-> ...
+ *
+ * The list's size is then decremented to account for the loss of the ListNode(s).
+ *
+ * The removed ListNode(s) and their associated data stored within are NOT freed.
+ */
+static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to, size_t range_size);
+
+/* ========================================================================================================
+ *
+ *                                        STATIC FUNCTION DEFINITIONS
+ *
+ * ======================================================================================================== */
+
+static void* list_free_single_node__(List *list, ListNode *node) {
+    // ONLY free data if list has ownership.
+    if (list->data_free != NULL) {
+        list->data_free(node->data);
+        list->list_free(node);
+        return NULL;
+    } else {
+        void *data = node->data;
+        list->list_free(node);
+        return data;
+    }
+}
+
+static void list_free_all_nodes__(List *list) {
+    if (list->size > 0) {
+        // ONLY free data if list has ownership. These loops are optimized for speed, so the use of an extra
+        // variable to make this loop "safe" (sort of like list_for_each_safe) is not needed thanks to the way
+        // these loops are implemented.
+        if (list->data_free != NULL) {
+            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
+                list->data_free(n->prev->data);
+                list->list_free(n->prev);
+            }
+            list->data_free(list->tail->data);
+            list->list_free(list->tail);
+        } else {
+            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
+                list->list_free(n->prev);
+            }
+            list->list_free(list->tail);
+        }
+    }
+}
+
+static void list_insert_range__(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size) {
+    if (left == NULL) {
+        from->prev = NULL;
+        list->head = from;
+    } else {
+        from->prev = left;
+        left->next = from;
+    }
+    if (right == NULL) {
+        to->next = NULL;
+        list->tail = to;
+    } else {
+        to->next = right;
+        right->prev = to;
+    }
+
+    list->size += range_size;
+}
+
+static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to, size_t range_size) {
+    if (list->head == from) {
+        list->head = to->next;
+    } else {
+        from->prev->next = to->next;
+    }
+    if (list->tail == to) {
+        list->tail = from->prev;
+    } else {
+        to->next->prev = from->prev;
+    }
+
+    list->size -= range_size;
+}
+
+/* ========================================================================================================
+ *
+ *                                        EXTERN FUNCTION DEFINITIONS
+ *
+ * ======================================================================================================== */
+
 List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (*data_free)(void*)) {
-    assert(list_malloc != NULL && list_free != NULL);
+    assert(list_malloc != NULL);
+    assert(list_free != NULL);
 
     List *list = (List*) list_malloc(sizeof(List));
     if (list == NULL) {
@@ -40,29 +163,16 @@ List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (
     return list;
 }
 
-void list_destroy(List *list) {
+void list_destroy(void *list) {
     if (list == NULL) {
         return;
     }
 
-    if (list->size > 0) {
-        // Only free data if list has ownership.
-        if (list->data_free != NULL) {
-            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->data_free(n->prev->data);
-                list->list_free(n->prev);
-            }
-            list->data_free(list->tail->data);
-            list->list_free(list->tail);
-        } else {
-            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->list_free(n->prev);
-            }
-            list->list_free(list->tail);
-        }
-    }
+    List *list_ptr = (List*) list;
 
-    list->list_free(list);
+    list_free_all_nodes__(list_ptr);
+
+    list_ptr->list_free(list_ptr);
 }
 
 void** list_to_array(List *list) {
@@ -82,20 +192,14 @@ void** list_to_array(List *list) {
     return array;
 }
 
-ListNode* list_find(List *list, void *data) {
+size_t list_index_of(List *list, ListNode *node) {
     assert(list != NULL);
+    assert(node != NULL);
 
-    list_for_each(n, list) {
-        if (n->data == data) {
-            return n;
-        }
+    // Micro-optimization for cases where list->tail == node, since we iterate from head to tail.
+    if (list->tail == node) {
+        return list->size - 1;
     }
-
-    return NULL;
-}
-
-size_t list_position(List *list, ListNode *node) {
-    assert(list != NULL && node != NULL);
 
     size_t i = 0;
     list_for_each(n, list) {
@@ -111,7 +215,8 @@ size_t list_position(List *list, ListNode *node) {
 }
 
 ListNode* list_at(List *list, size_t index) {
-    assert(list != NULL && index < list->size);
+    assert(list != NULL);
+    assert(index < list->size);
 
     // Figure out if it's relatively quicker to iterate from front to back or back to front.
     if (index < list->size / 2) {
@@ -132,65 +237,39 @@ ListNode* list_at(List *list, size_t index) {
         }
     }
 
-    // This will only return NULL if assertions are disabled and index is out of bounds.
+    // Out of bounds.
     assert(0);
     return NULL;
 }
 
-ListNode* list_insert_at(List *list, void *data, size_t index) {
-    assert(list != NULL && index <= list->size);
-
-    if (index == 0) {
-        return list_push_front(list, data);
-    } else if (index == list->size) {
-        return list_push_back(list, data);
-    } else {
-        return list_insert_left(list, data, list_at(list, index));
-    }
-}
-
 ListNode* list_insert_left(List *list, void *data, ListNode *node) {
-    assert(list != NULL && node != NULL);
+    assert(list != NULL);
+    assert(node != NULL);
 
     ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
+
     new_node->data = data;
 
-    new_node->next = node;
-    if (node->prev == NULL) {
-        new_node->prev = NULL;
-        list->head = new_node;
-    } else {
-        new_node->prev = node->prev;
-        node->prev->next = new_node;
-    }
-    node->prev = new_node;
-    ++list->size;
+    list_insert_range__(list, node->prev, new_node, new_node, node, 1);
 
     return new_node;
 }
 
 ListNode* list_insert_right(List *list, void *data, ListNode *node) {
-    assert(list != NULL && node != NULL);
+    assert(list != NULL);
+    assert(node != NULL);
 
     ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
+
     new_node->data = data;
 
-    new_node->prev = node;
-    if (node->next == NULL) {
-        new_node->next = NULL;
-        list->tail = new_node;
-    } else {
-        new_node->next = node->next;
-        node->next->prev = new_node;
-    }
-    node->next = new_node;
-    ++list->size;
+    list_insert_range__(list, node, new_node, new_node, node->next, 1);
 
     return new_node;
 }
@@ -202,18 +281,10 @@ ListNode* list_push_front(List *list, void *data) {
     if (new_node == NULL) {
         return NULL;
     }
+
     new_node->data = data;
 
-    new_node->prev = NULL;
-    if (list->size == 0) {
-        new_node->next = NULL;
-        list->tail = new_node;
-    } else {
-        new_node->next = list->head;
-        list->head->prev = new_node;
-    }
-    list->head = new_node;
-    ++list->size;
+    list_insert_range__(list, NULL, new_node, new_node, list->head, 1);
 
     return new_node;
 }
@@ -225,18 +296,10 @@ ListNode* list_push_back(List *list, void *data) {
     if (new_node == NULL) {
         return NULL;
     }
+
     new_node->data = data;
 
-    new_node->next = NULL;
-    if (list->size == 0) {
-        new_node->prev = NULL;
-        list->head = new_node;
-    } else {
-        new_node->prev = list->tail;
-        list->tail->next = new_node;
-    }
-    list->tail = new_node;
-    ++list->size;
+    list_insert_range__(list, list->tail, new_node, new_node, NULL, 1);
 
     return new_node;
 }
@@ -244,91 +307,57 @@ ListNode* list_push_back(List *list, void *data) {
 void list_clear(List *list) {
     assert(list != NULL);
 
-    // If list is already empty, return.
-    if (list->size == 0) {
-        return;
-    }
-
-    // Only free data if list has ownership.
-    if (list->data_free != NULL) {
-        for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-            list->data_free(n->prev->data);
-            list->list_free(n->prev);
-        }
-        list->data_free(list->tail->data);
-        list->list_free(list->tail);
-    } else {
-        for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-            list->list_free(n->prev);
-        }
-        list->list_free(list->tail);
-    }
+    list_free_all_nodes__(list);
 
     list->head = NULL;
     list->tail = NULL;
     list->size = 0;
 }
 
-void* list_delete_at(List *list, size_t index) {
-    assert(list != NULL && index < list->size);
-
-    if (index == 0) {
-        return list_delete_node(list, list->head);
-    } else if (index == list->size - 1) {
-        return list_delete_node(list, list->tail);
-    } else {
-        return list_delete_node(list, list_at(list, index));
-    }
-}
-
-void* list_delete_node(List *list, ListNode *node) {
+void* list_remove(List *list, ListNode *node) {
     assert(list != NULL);
 
     if (node == NULL) {
         return NULL;
     }
 
-    if (node->prev == NULL) {
-        list->head = node->next;
-    } else {
-        node->prev->next = node->next;
-    }
-    if (node->next == NULL) {
-        list->tail = node->prev;
-    } else {
-        node->next->prev = node->prev;
-    }
-    --list->size;
+    list_delete_range_no_free__(list, node, node, 1);
 
-    // Only free data if list has ownership.
-    if (list->data_free != NULL) {
-        list->data_free(node->data);
-        list->list_free(node);
-        return NULL;
-    } else {
-        void *data = node->data;
-        list->list_free(node);
-        return data;
-    }
+    return list_free_single_node__(list, node);
 }
 
 void* list_pop_front(List *list) {
     assert(list != NULL);
 
-    return list_delete_node(list, list->head);
+    if (list->size == 0) {
+        return NULL;
+    }
+
+    ListNode *node = list->head;
+    list_delete_range_no_free__(list, node, node, 1);
+
+    return list_free_single_node__(list, node);
 }
 
 void* list_pop_back(List *list) {
     assert(list != NULL);
 
-    return list_delete_node(list, list->tail);
+    if (list->size == 0) {
+        return NULL;
+    }
+
+    ListNode *node = list->tail;
+    list_delete_range_no_free__(list, node, node, 1);
+
+    return list_free_single_node__(list, node);
 }
 
-// Adapted from:
+// Iterative merge sort adapted from:
 // http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
 // https://stackoverflow.com/questions/7685/merge-sort-a-linked-list
 void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
-    assert(list != NULL && compare_data != NULL);
+    assert(list != NULL);
+    assert(compare_data != NULL);
 
     if (list->size < 2) {
         return;
@@ -340,25 +369,26 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
     do {
         num_merges = 0;
         left = head;
-        tail = head = NULL;
+        head = NULL;
+        tail = NULL;
 
-        while (left) {
+        while (left != NULL) {
             ++num_merges;
             right = left;
             left_size = 0;
             right_size = list_size;
 
-            while (right && left_size < list_size) {
+            while (right != NULL && left_size < list_size) {
                 ++left_size;
                 right = right->next;
             }
 
-            while (left_size > 0 || (right_size > 0 && right)) {
-                if (!left_size) {
+            while (left_size > 0 || (right_size > 0 && right != NULL)) {
+                if (left_size == 0) {
                     next = right;
                     right = right->next;
                     --right_size;
-                } else if (!right_size || !right) {
+                } else if (right_size == 0 || right == NULL) {
                     next = left;
                     left = left->next;
                     --left_size;
@@ -372,7 +402,7 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
                     --right_size;
                 }
 
-                if (tail) {
+                if (tail != NULL) {
                     tail->next = next;
                 } else {
                     head = next;
@@ -391,4 +421,70 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
 
     list->head = head;
     list->tail = tail;
+}
+
+void list_splice_left(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size) {
+    assert(list1 != NULL);
+    assert(node != NULL);
+    assert(list2 != NULL);
+    assert(list1->list_malloc == list2->list_malloc);
+    assert(list1->list_free == list2->list_free);
+    assert(list1->data_free == list2->data_free);
+    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
+
+    if (range_size == 0) {
+        return;
+    }
+
+    list_delete_range_no_free__(list2, from, to, range_size);
+    list_insert_range__(list1, node->prev, from, to, node, range_size);
+}
+
+void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size) {
+    assert(list1 != NULL);
+    assert(node != NULL);
+    assert(list2 != NULL);
+    assert(list1->list_malloc == list2->list_malloc);
+    assert(list1->list_free == list2->list_free);
+    assert(list1->data_free == list2->data_free);
+    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
+
+    if (range_size == 0) {
+        return;
+    }
+
+    list_delete_range_no_free__(list2, from, to, range_size);
+    list_insert_range__(list1, node, from, to, node->next, range_size);
+}
+
+void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
+    assert(list1 != NULL);
+    assert(list2 != NULL);
+    assert(list1->list_malloc == list2->list_malloc);
+    assert(list1->list_free == list2->list_free);
+    assert(list1->data_free == list2->data_free);
+    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
+
+    if (range_size == 0) {
+        return;
+    }
+
+    list_delete_range_no_free__(list2, from, to, range_size);
+    list_insert_range__(list1, NULL, from, to, list1->head, range_size);
+}
+
+void list_splice_back(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
+    assert(list1 != NULL);
+    assert(list2 != NULL);
+    assert(list1->list_malloc == list2->list_malloc);
+    assert(list1->list_free == list2->list_free);
+    assert(list1->data_free == list2->data_free);
+    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
+
+    if (range_size == 0) {
+        return;
+    }
+
+    list_delete_range_no_free__(list2, from, to, range_size);
+    list_insert_range__(list1, list1->tail, from, to, NULL, range_size);
 }
