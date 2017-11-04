@@ -27,7 +27,6 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      ====  FUNCTIONS  ====
  *      -   list_create
  *      -   list_destroy
- *      -   list_to_array
  *      -   list_index_of
  *      -   list_at
  *      -   list_insert_left
@@ -101,8 +100,7 @@ typedef struct List {
  *
  * @param list_malloc           The malloc function used to allocate all memory used by the @ref List,
  *                              including the creation of the @ref List itself. For example, @ref ListNode's
- *                              are allocated using this function, and @ref list_to_array uses this function
- *                              to allocate an array of data pointers.
+ *                              are allocated using this function.
  * @param list_free             The free function used to deallocate all memory used by the @ref List.
  * @param data_free             The free function used to deallocate the stored data in each @ref ListNode. If
  *                              NULL, then the @ref List will not take ownership over the data contained in
@@ -129,24 +127,6 @@ List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (
  * @param list                  The @ref List to be destroyed.
  */
 void list_destroy(void *list);
-
-/**
- * Allocates an array of pointers-to-void (pointers to what the data pointers point to in each @ref ListNode)
- * of size @ref list->size. @ref list->list_malloc is used to allocate this array. This array will contain a
- * dangling pointer if the @ref list has ownership over the data, and a @ref ListNode is deallocated. Note
- * that the user is responsible for freeing this array.
- *
- * Requirements:
- *      -   @ref list != NULL
- *
- * Time complexity:
- *      -   O(n)
- *
- * @param list                  The @ref List to be used to create the array.
- * @return                      NULL if allocation failed, otherwise the memory address of the newly created
- *                              array of pointers-to-void (i.e. pointers to data).
- */
-void** list_to_array(List *list);
 
 /**
  * Retrieves the index of the @ref node in the @ref list.

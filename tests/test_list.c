@@ -88,41 +88,6 @@ void test_list_create_and_destroy(void) {
     list = NULL;
 }
 
-void test_list_to_array(void) {
-    // Test bad allocation.
-    List *list = list_create(test_malloc, test_free, test_free);
-    list->list_malloc = test_bad_malloc;
-    assert(list_to_array(list) == NULL);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on empty list.
-    list = list_create(test_malloc, test_free, test_free);
-    void **array = list_to_array(list);
-    assert(array != NULL);
-    test_free(array);
-    list_destroy(list);
-    list = NULL;
-    array = NULL;
-
-    // Test on non-empty list. Assumes list_push_back works as intended for the sake of adding items to the
-    // list.
-    list = list_create(test_malloc, test_free, NULL);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    array = list_to_array(list);
-    assert((int*) array[0] == static_var1);
-    assert((int*) array[1] == static_var2);
-    assert((int*) array[2] == static_var3);
-    assert((int*) array[3] == static_var4);
-    test_free(array);
-    list_destroy(list);
-    list = NULL;
-    array = NULL;
-}
-
 void test_list_index_of(void) {
     // Assume list_push_back works as intended.
     List *list = list_create(test_malloc, test_free, NULL);
@@ -2749,7 +2714,6 @@ void test_list_traversal_macros(void) {
 
 TestFunc test_funcs[] = {
     test_list_create_and_destroy,
-    test_list_to_array,
     test_list_index_of,
     test_list_at,
     test_list_insert_left,
@@ -2769,7 +2733,7 @@ TestFunc test_funcs[] = {
 };
 
 int main(void) {
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 18);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 17);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc));
     return 0;
 }

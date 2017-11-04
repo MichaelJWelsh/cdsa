@@ -175,23 +175,6 @@ void list_destroy(void *list) {
     list_ptr->list_free(list_ptr);
 }
 
-void** list_to_array(List *list) {
-    assert(list != NULL);
-
-    void **array = (void **) list->list_malloc(list->size * sizeof(void*));
-    if (array == NULL) {
-        return NULL;
-    }
-
-    size_t i = 0;
-    list_for_each(n, list) {
-        array[i] = n->data;
-        ++i;
-    }
-
-    return array;
-}
-
 size_t list_index_of(List *list, ListNode *node) {
     assert(list != NULL);
     assert(node != NULL);
