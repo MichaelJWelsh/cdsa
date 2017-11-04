@@ -77,45 +77,59 @@ typedef struct ListNode {
 } ListNode;
 
 /**
+ * Represents the low-level configuration of a @ref List.
+ */
+typedef struct ListConfig {
+    /**
+     * The malloc function used to allocate all memory used by the @ref List, including the creation of the
+     * @ref List itself. For example, @ref ListNode's are allocated using this function. Cannot be NULL.
+     */
+    void* (*list_malloc)(size_t);
+
+    /**
+     * The free function used to deallocate all memory allocated by the @ref List. Cannot be NULL.
+     */
+    void (*list_free)(void*);
+
+    /**
+     * The free function used to deallocate the stored data in each @ref ListNode. If NULL, then the @ref List
+     * will not take ownership over the data contained in each @ref ListNode, meaning it will not free up the
+     * data in a @ref ListNode when the @ref ListNode is to be deallocated.
+     */
+    void (*data_free)(void*);
+} ListConfig;
+
+/**
  * Represents a doubly linked list.
  */
 typedef struct List {
     ListNode *head;
     ListNode *tail;
-    void* (*list_malloc)(size_t);
-    void (*list_free)(void*);
-    void (*data_free)(void*);
     size_t size;
+    ListConfig config;
 } List;
 
 /**
  * Creates (allocates) a new empty @ref List.
  *
  * Requirements:
- *      -   @ref list_malloc != NULL
- *      -   @ref list_free != NULL
+ *      -   @ref config.list_malloc != NULL
+ *      -   @ref config.list_free != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
- * @param list_malloc           The malloc function used to allocate all memory used by the @ref List,
- *                              including the creation of the @ref List itself. For example, @ref ListNode's
- *                              are allocated using this function.
- * @param list_free             The free function used to deallocate all memory used by the @ref List.
- * @param data_free             The free function used to deallocate the stored data in each @ref ListNode. If
- *                              NULL, then the @ref List will not take ownership over the data contained in
- *                              each @ref ListNode, meaning it will not free up the data in a @ref ListNode
- *                              when the @ref ListNode is to be deallocated.
+ * @param config                The @ref ListConfig to be used in the new @ref List.
  * @return                      NULL if the allocation failed, otherwise the memory address of newly created
  *                              @ref List.
  */
-List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (*data_free)(void*));
+List* list_create(ListConfig config);
 
 /**
  * Deallocates the @ref List and all @ref ListNodes associated with it. If the @ref list has ownership over
  * the stored data, then all stored data is also deallocated. If @ref list is a NULL pointer, this function
  * simply returns. Note that the parameter of this function is a pointer-to-void, meaning that its type is the
- * same as every generic free function, meaning that, for example, @ref list->data_free can equal this
+ * same as every generic free function, meaning that, for example, @ref list->config.data_free can equal this
  * function.
  *
  * Requirements:
@@ -328,16 +342,16 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*));
  * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the left of @ref node in
  * @ref list1. This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1
  * and removes them from @ref list2, altering the sizes of both @ref List's. This operation does not involve
- * the creation or deletion of any @ref ListNode's. The allocators/deallocators of both @ref List's must be
- * equal. If @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed
- * to equal @ref list2 so long as several additional requirements are met.
+ * the creation or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If
+ * @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal
+ * @ref list2 so long as several additional requirements are met.
  *
  * Requirements:
  *      -   @ref list1 != NULL
  *      -   @ref node != NULL
  *      -   @ref node is part of @ref list1
  *      -   @ref list2 != NULL
- *      -   The allocators/deallocators of both @ref List's must be equal.
+ *      -   The @ref ListConfig of both @ref List's must be equal.
  *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
  *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
  *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
@@ -367,16 +381,16 @@ void list_splice_left(List *list1, ListNode *node, List *list2, ListNode *from, 
  * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the right of @ref node
  * in @ref list1. This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into
  * @ref list1 and removes them from @ref list2, altering the sizes of both @ref List's. This operation does
- * not involve the creation or deletion of any @ref ListNode's. The allocators/deallocators of both
- * @ref List's must be equal. If @ref from and @ref to are both equal to NULL, this function simply returns.
- * @ref list1 is allowed to equal @ref list2 so long as several additional requirements are met.
+ * not involve the creation or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must
+ * be equal. If @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is
+ * allowed to equal @ref list2 so long as several additional requirements are met.
  *
  * Requirements:
  *      -   @ref list1 != NULL
  *      -   @ref node != NULL
  *      -   @ref node is part of @ref list1
  *      -   @ref list2 != NULL
- *      -   The allocators/deallocators of both @ref List's must be equal.
+ *      -   The @ref ListConfig of both @ref List's must be equal.
  *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
  *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
  *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
@@ -406,14 +420,13 @@ void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from,
  * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the front of @ref list1.
  * This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1 and removes
  * them from @ref list2, altering the sizes of both @ref List's. This operation does not involve the creation
- * or deletion of any @ref ListNode's. The allocators/deallocators of both @ref List's must be equal. If
- * @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal
- * @ref list2.
+ * or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If @ref from and
+ * @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal @ref list2.
  *
  * Requirements:
  *      -   @ref list1 != NULL
  *      -   @ref list2 != NULL
- *      -   The allocators/deallocators of both @ref List's must be equal.
+ *      -   The @ref ListConfig of both @ref List's must be equal.
  *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
  *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
  *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
@@ -441,14 +454,13 @@ void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, s
  * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the back of @ref list1.
  * This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1 and removes
  * them from @ref list2, altering the sizes of both @ref List's. This operation does not involve the creation
- * or deletion of any @ref ListNode's. The allocators/deallocators of both @ref List's must be equal. If
- * @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal
- * @ref list2.
+ * or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If @ref from and
+ * @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal @ref list2.
  *
  * Requirements:
  *      -   @ref list1 != NULL
  *      -   @ref list2 != NULL
- *      -   The allocators/deallocators of both @ref List's must be equal.
+ *      -   The @ref ListConfig of both @ref List's must be equal.
  *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
  *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
  *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]

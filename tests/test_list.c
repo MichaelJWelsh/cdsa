@@ -26,30 +26,38 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "../src/list.h"
 #include "../src/list.h"
 
+/*
+ * Find a bug. I dare you.
+ */
+
 int static_var1[] = {1}, static_var2[] = {2}, static_var3[] = {3}, static_var4[] = {4}, static_var5[] = {5}, static_var6[] = {6};
+
+const ListConfig test_bad_malloc_config = {test_bad_malloc, test_free, NULL};
+const ListConfig test_config_no_ownership = {test_malloc, test_free, NULL};
+const ListConfig test_config_with_ownership = {test_malloc, test_free, test_free};
 
 void test_list_create_and_destroy(void) {
     // Test bad allocation.
-    List *list = list_create(test_bad_malloc, test_free, NULL);
+    List *list = list_create(test_bad_malloc_config);
     assert(list == NULL);
     list_destroy(list);
     list = NULL;
 
     // Test allocation/deallocation on an empty list WITH ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     assert(list != NULL);
     assert(list->head == NULL);
     assert(list->tail == NULL);
-    assert(list->list_malloc == test_malloc);
-    assert(list->list_free == test_free);
-    assert(list->data_free == test_free);
+    assert(list->config.list_malloc == test_malloc);
+    assert(list->config.list_free == test_free);
+    assert(list->config.data_free == test_free);
     assert(list->size == 0);
     list_destroy(list);
     list = NULL;
 
     // Test allocation/deallocation on a non-empty list WITH ownership. Assumes list_push_back works as
     // intended for the sake of adding items to the list.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     int *dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     int *dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -66,20 +74,20 @@ void test_list_create_and_destroy(void) {
     list = NULL;
 
     // Test allocation/deallocation on an empty list WITHOUT ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     assert(list != NULL);
     assert(list->head == NULL);
     assert(list->tail == NULL);
-    assert(list->list_malloc == test_malloc);
-    assert(list->list_free == test_free);
-    assert(list->data_free == NULL);
+    assert(list->config.list_malloc == test_malloc);
+    assert(list->config.list_free == test_free);
+    assert(list->config.data_free == NULL);
     assert(list->size == 0);
     list_destroy(list);
     list = NULL;
 
     // Test allocation/deallocation on a non-empty list WITHOUT ownership. Assumes list_push_back works as
     // intended for the sake of adding items to the list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -90,7 +98,7 @@ void test_list_create_and_destroy(void) {
 
 void test_list_index_of(void) {
     // Assume list_push_back works as intended.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -105,7 +113,7 @@ void test_list_index_of(void) {
 
 void test_list_at(void) {
     // Assume list_push_back works as intended.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -120,16 +128,16 @@ void test_list_at(void) {
 
 void test_list_insert_left(void) {
     // Test insertion with bad malloc. Assume list_push_back works as intended.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     ListNode *node = list_push_back(list, static_var1);
-    list->list_malloc = test_bad_malloc;
+    list->config.list_malloc = test_bad_malloc;
     assert(list_insert_left(list, static_var2, node) == NULL);
     list_destroy(list);
     list = NULL;
     node = NULL;
 
     // Test insertion at head of list. Assume list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *tail = list_push_back(list, static_var2);
     ListNode *head = list_insert_left(list, static_var1, tail);
     assert(list->head == head);
@@ -147,7 +155,7 @@ void test_list_insert_left(void) {
     head = NULL;
 
     // Test insertion elsewhere. Assume list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var3);
     ListNode *middle = list_insert_left(list, static_var2, tail);
@@ -172,16 +180,16 @@ void test_list_insert_left(void) {
 
 void test_list_insert_right(void) {
     // Test insertion with bad malloc. Assume list_push_back works as intended.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     ListNode *node = list_push_back(list, static_var1);
-    list->list_malloc = test_bad_malloc;
+    list->config.list_malloc = test_bad_malloc;
     assert(list_insert_right(list, static_var2, node) == NULL);
     list_destroy(list);
     list = NULL;
     node = NULL;
 
     // Test insertion at tail of list. Assume list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list, static_var1);
     ListNode *tail = list_insert_right(list, static_var2, head);
     assert(list->head == head);
@@ -199,7 +207,7 @@ void test_list_insert_right(void) {
     tail = NULL;
 
     // Test insertion elsewhere. Assume list_push_back works as intended.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var3);
     ListNode *middle = list_insert_right(list, static_var2, head);
@@ -224,14 +232,14 @@ void test_list_insert_right(void) {
 
 void test_list_push_front(void) {
     // Test insertion with bad malloc.
-    List *list = list_create(test_malloc, test_free, NULL);
-    list->list_malloc = test_bad_malloc;
+    List *list = list_create(test_config_no_ownership);
+    list->config.list_malloc = test_bad_malloc;
     assert(list_push_front(list, static_var1) == NULL);
     list_destroy(list);
     list = NULL;
 
     // Test insertion on empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *node = list_push_front(list, static_var1);
     assert(list->head == node);
     assert(list->tail == node);
@@ -244,7 +252,7 @@ void test_list_push_front(void) {
     node = NULL;
 
     // Test insertion on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *tail = list_push_front(list, static_var2);
     ListNode *head = list_push_front(list, static_var1);
     assert(list->head == head);
@@ -264,14 +272,14 @@ void test_list_push_front(void) {
 
 void test_list_push_back(void) {
     // Test insertion with bad malloc.
-    List *list = list_create(test_malloc, test_free, NULL);
-    list->list_malloc = test_bad_malloc;
+    List *list = list_create(test_config_no_ownership);
+    list->config.list_malloc = test_bad_malloc;
     assert(list_push_back(list, static_var1) == NULL);
     list_destroy(list);
     list = NULL;
 
     // Test insertion on empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *node = list_push_back(list, static_var1);
     assert(list->head == node);
     assert(list->tail == node);
@@ -284,7 +292,7 @@ void test_list_push_back(void) {
     node = NULL;
 
     // Test insertion on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list, static_var1);
     ListNode *tail = list_push_back(list, static_var2);
     assert(list->head == head);
@@ -304,7 +312,7 @@ void test_list_push_back(void) {
 
 void test_list_clear(void) {
     // Test on empty list without ownership.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     list_clear(list);
     assert(list->head == NULL);
     assert(list->tail == NULL);
@@ -313,7 +321,7 @@ void test_list_clear(void) {
     list = NULL;
 
     // Test on non-empty list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -326,7 +334,7 @@ void test_list_clear(void) {
     list = NULL;
 
     // Test on empty list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     list_clear(list);
     assert(list->head == NULL);
     assert(list->tail == NULL);
@@ -335,7 +343,7 @@ void test_list_clear(void) {
     list = NULL;
 
     // Test on non-empty list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     int *dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     int *dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -362,7 +370,7 @@ void test_list_clear(void) {
 
 void test_list_remove(void) {
     // Test deletion with NULL as input.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list, static_var1);
     ListNode *tail = list_push_back(list, static_var2);
     assert(list_remove(list, NULL) == NULL);
@@ -381,7 +389,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on single-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *node = list_push_back(list, static_var1);
     assert(list_remove(list, node) == static_var1);
     assert(list->head == NULL);
@@ -392,7 +400,7 @@ void test_list_remove(void) {
     node = NULL;
 
     // Test deletion on single-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     int *dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     node = list_push_back(list, dynamic_var1);
@@ -406,7 +414,7 @@ void test_list_remove(void) {
     node = NULL;
 
     // Test deletion on head of multi-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var2);
     assert(list_remove(list, head) == static_var1);
@@ -422,7 +430,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on head of multi-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     int *dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -444,7 +452,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on tail of multi-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var2);
     assert(list_remove(list, tail) == static_var2);
@@ -460,7 +468,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on tail of multi-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -482,7 +490,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on middle of multi-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     ListNode *middle = list_push_back(list, static_var2);
     tail = list_push_back(list, static_var3);
@@ -503,7 +511,7 @@ void test_list_remove(void) {
     tail = NULL;
 
     // Test deletion on middle of multi-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -535,7 +543,7 @@ void test_list_remove(void) {
 
 void test_list_pop_front(void) {
     // Test deletion on empty list.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     assert(list_pop_front(list) == NULL);
     assert(list->head == NULL);
     assert(list->tail == NULL);
@@ -544,7 +552,7 @@ void test_list_pop_front(void) {
     list = NULL;
 
     // Test deletion on single-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     assert(list_pop_front(list) == static_var1);
     assert(list->head == NULL);
@@ -554,7 +562,7 @@ void test_list_pop_front(void) {
     list = NULL;
 
     // Test deletion on single-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     int *dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     list_push_back(list, dynamic_var1);
@@ -567,7 +575,7 @@ void test_list_pop_front(void) {
     dynamic_var1 = NULL;
 
     // Test deletion on multi-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     ListNode *tail = list_push_back(list, static_var2);
     assert(list_pop_front(list) == static_var1);
@@ -582,7 +590,7 @@ void test_list_pop_front(void) {
     tail = NULL;
 
     // Test deletion on multi-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     int *dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -605,7 +613,7 @@ void test_list_pop_front(void) {
 
 void test_list_pop_back(void) {
     // Test deletion on empty list.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     assert(list_pop_front(list) == NULL);
     assert(list->head == NULL);
     assert(list->tail == NULL);
@@ -614,7 +622,7 @@ void test_list_pop_back(void) {
     list = NULL;
 
     // Test deletion on single-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     assert(list_pop_back(list) == static_var1);
     assert(list->head == NULL);
@@ -624,7 +632,7 @@ void test_list_pop_back(void) {
     list = NULL;
 
     // Test deletion on single-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     int *dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     list_push_back(list, dynamic_var1);
@@ -637,7 +645,7 @@ void test_list_pop_back(void) {
     dynamic_var1 = NULL;
 
     // Test deletion on multi-node list without ownership.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     assert(list_pop_back(list) == static_var2);
@@ -652,7 +660,7 @@ void test_list_pop_back(void) {
     head = NULL;
 
     // Test deletion on multi-node list with ownership.
-    list = list_create(test_malloc, test_free, test_free);
+    list = list_create(test_config_with_ownership);
     dynamic_var1 = (int*) test_malloc(sizeof(int));
     *dynamic_var1 = 1;
     int *dynamic_var2 = (int*) test_malloc(sizeof(int));
@@ -680,7 +688,7 @@ static int test_list_sort_compare(const void *d1, const void* d2) {
 
 void test_list_sort(void) {
     // Test sort on empty list.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     list_sort(list, test_list_sort_compare);
     assert(list->head == NULL);
     assert(list->tail == NULL);
@@ -689,7 +697,7 @@ void test_list_sort(void) {
     list = NULL;
 
     // Test sort on single-node list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *node = list_push_back(list, static_var1);
     list_sort(list, test_list_sort_compare);
     assert(list->head == node);
@@ -703,7 +711,7 @@ void test_list_sort(void) {
     node = NULL;
 
     // Test sort on double-node list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *tail = list_push_back(list, static_var2);
     ListNode *head = list_push_back(list, static_var1);
     list_sort(list, test_list_sort_compare);
@@ -722,7 +730,7 @@ void test_list_sort(void) {
     head = NULL;
 
     // Test sort on even-sized multi-node list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var4);
     ListNode *third = list_push_back(list, static_var3);
@@ -751,7 +759,7 @@ void test_list_sort(void) {
     second = NULL;
 
     // Test sort on odd-sized multi-node list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     tail = list_push_back(list, static_var5);
     third = list_push_back(list, static_var3);
@@ -785,7 +793,7 @@ void test_list_sort(void) {
     fourth = NULL;
 
     // Test sort on already sorted list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -819,7 +827,7 @@ void test_list_sort(void) {
     tail = NULL;
 
     // Test sort stability.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var1);
     third = list_push_back(list, static_var1);
@@ -855,8 +863,8 @@ void test_list_sort(void) {
 
 void test_list_splice_left(void) {
     // Test splicing non-empty list at front with empty list.
-    List *list1 = list_create(test_malloc, test_free, NULL);
-    List *list2 = list_create(test_malloc, test_free, NULL);
+    List *list1 = list_create(test_config_no_ownership);
+    List *list2 = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list1, static_var1);
     ListNode *middle = list_push_back(list1, static_var2);
     ListNode *tail = list_push_back(list1, static_var3);
@@ -885,8 +893,8 @@ void test_list_splice_left(void) {
     tail = NULL;
 
     // Test splicing non-empty list at middle with empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     head = list_push_back(list1, static_var1);
     middle = list_push_back(list1, static_var2);
     tail = list_push_back(list1, static_var3);
@@ -915,8 +923,8 @@ void test_list_splice_left(void) {
     tail = NULL;
 
     // Test splicing non-empty list at front with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *first = list_push_back(list2, static_var1);
     ListNode *second = list_push_back(list2, static_var2);
     ListNode *third = list_push_back(list2, static_var3);
@@ -960,8 +968,8 @@ void test_list_splice_left(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at middle with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1005,8 +1013,8 @@ void test_list_splice_left(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at front with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1050,8 +1058,8 @@ void test_list_splice_left(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at middle with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1095,7 +1103,7 @@ void test_list_splice_left(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at front with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1119,7 +1127,7 @@ void test_list_splice_left(void) {
     third = NULL;
 
     // Test splicing non-empty list at middle with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1145,8 +1153,8 @@ void test_list_splice_left(void) {
 
 void test_list_splice_right(void) {
     // Test splicing non-empty list at middle with empty list.
-    List *list1 = list_create(test_malloc, test_free, NULL);
-    List *list2 = list_create(test_malloc, test_free, NULL);
+    List *list1 = list_create(test_config_no_ownership);
+    List *list2 = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list1, static_var1);
     ListNode *middle = list_push_back(list1, static_var2);
     ListNode *tail = list_push_back(list1, static_var3);
@@ -1175,8 +1183,8 @@ void test_list_splice_right(void) {
     tail = NULL;
 
     // Test splicing non-empty list at back with empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     head = list_push_back(list1, static_var1);
     middle = list_push_back(list1, static_var2);
     tail = list_push_back(list1, static_var3);
@@ -1205,8 +1213,8 @@ void test_list_splice_right(void) {
     tail = NULL;
 
     // Test splicing non-empty list at middle with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     head = list_push_back(list1, static_var1);
     middle = list_push_back(list1, static_var2);
     tail = list_push_back(list1, static_var3);
@@ -1235,8 +1243,8 @@ void test_list_splice_right(void) {
     tail = NULL;
 
     // Test splicing non-empty list at back with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *first = list_push_back(list2, static_var1);
     ListNode *second = list_push_back(list2, static_var2);
     ListNode *third = list_push_back(list2, static_var3);
@@ -1280,8 +1288,8 @@ void test_list_splice_right(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at middle with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1325,8 +1333,8 @@ void test_list_splice_right(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at back with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1370,7 +1378,7 @@ void test_list_splice_right(void) {
     sixth = NULL;
 
     // Test splicing non-empty list at middle with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1394,7 +1402,7 @@ void test_list_splice_right(void) {
     third = NULL;
 
     // Test splicing non-empty list at back with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1420,8 +1428,8 @@ void test_list_splice_right(void) {
 
 void test_list_splice_front(void) {
     // Test splicing empty list with empty list.
-    List *list1 = list_create(test_malloc, test_free, NULL);
-    List *list2 = list_create(test_malloc, test_free, NULL);
+    List *list1 = list_create(test_config_no_ownership);
+    List *list2 = list_create(test_config_no_ownership);
     list_splice_front(list1, list2, NULL, NULL, 0);
     assert(list1->head == NULL);
     assert(list1->tail == NULL);
@@ -1435,7 +1443,7 @@ void test_list_splice_front(void) {
     list2 = NULL;
 
     // Test splicing empty list with empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     list_splice_front(list1, list1, NULL, NULL, 0);
     assert(list1->head == NULL);
     assert(list1->tail == NULL);
@@ -1444,8 +1452,8 @@ void test_list_splice_front(void) {
     list1 = NULL;
 
     // Test splicing empty list with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list2, static_var1);
     ListNode *middle = list_push_back(list2, static_var2);
     ListNode *tail = list_push_back(list2, static_var3);
@@ -1474,8 +1482,8 @@ void test_list_splice_front(void) {
     tail = NULL;
 
     // Test splicing empty list with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *first = list_push_back(list2, static_var1);
     ListNode *second = list_push_back(list2, static_var2);
     ListNode *third = list_push_back(list2, static_var3);
@@ -1504,8 +1512,8 @@ void test_list_splice_front(void) {
     third = NULL;
 
     // Test splicing non-empty list with empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     head = list_push_back(list1, static_var1);
     middle = list_push_back(list1, static_var2);
     tail = list_push_back(list1, static_var3);
@@ -1534,8 +1542,8 @@ void test_list_splice_front(void) {
     tail = NULL;
 
     // Test splicing non-empty list with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1579,8 +1587,8 @@ void test_list_splice_front(void) {
     sixth = NULL;
 
     // Test splicing non-empty list with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1624,7 +1632,7 @@ void test_list_splice_front(void) {
     sixth = NULL;
 
     // Test splicing non-empty list with entire non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1648,7 +1656,7 @@ void test_list_splice_front(void) {
     third = NULL;
 
     // Test splicing non-empty list with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1674,8 +1682,8 @@ void test_list_splice_front(void) {
 
 void test_list_splice_back(void) {
     // Test splicing empty list with empty list.
-    List *list1 = list_create(test_malloc, test_free, NULL);
-    List *list2 = list_create(test_malloc, test_free, NULL);
+    List *list1 = list_create(test_config_no_ownership);
+    List *list2 = list_create(test_config_no_ownership);
     list_splice_back(list1, list2, NULL, NULL, 0);
     assert(list1->head == NULL);
     assert(list1->tail == NULL);
@@ -1689,7 +1697,7 @@ void test_list_splice_back(void) {
     list2 = NULL;
 
     // Test splicing empty list with empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     list_splice_back(list1, list1, NULL, NULL, 0);
     assert(list1->head == NULL);
     assert(list1->tail == NULL);
@@ -1698,8 +1706,8 @@ void test_list_splice_back(void) {
     list1 = NULL;
 
     // Test splicing empty list with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list2, static_var1);
     ListNode *middle = list_push_back(list2, static_var2);
     ListNode *tail = list_push_back(list2, static_var3);
@@ -1728,8 +1736,8 @@ void test_list_splice_back(void) {
     tail = NULL;
 
     // Test splicing empty list with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     ListNode *first = list_push_back(list2, static_var1);
     ListNode *second = list_push_back(list2, static_var2);
     ListNode *third = list_push_back(list2, static_var3);
@@ -1758,8 +1766,8 @@ void test_list_splice_back(void) {
     third = NULL;
 
     // Test splicing non-empty list with empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     head = list_push_back(list1, static_var1);
     middle = list_push_back(list1, static_var2);
     tail = list_push_back(list1, static_var3);
@@ -1788,8 +1796,8 @@ void test_list_splice_back(void) {
     tail = NULL;
 
     // Test splicing non-empty list with entire non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1833,8 +1841,8 @@ void test_list_splice_back(void) {
     sixth = NULL;
 
     // Test splicing non-empty list with part of non-empty list.
-    list1 = list_create(test_malloc, test_free, NULL);
-    list2 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
+    list2 = list_create(test_config_no_ownership);
     first = list_push_back(list2, static_var1);
     second = list_push_back(list2, static_var2);
     third = list_push_back(list2, static_var3);
@@ -1878,7 +1886,7 @@ void test_list_splice_back(void) {
     sixth = NULL;
 
     // Test splicing non-empty list with entire non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1902,7 +1910,7 @@ void test_list_splice_back(void) {
     third = NULL;
 
     // Test splicing non-empty list with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_malloc, test_free, NULL);
+    list1 = list_create(test_config_no_ownership);
     first = list_push_back(list1, static_var1);
     second = list_push_back(list1, static_var2);
     third = list_push_back(list1, static_var3);
@@ -1930,7 +1938,7 @@ void test_list_traversal_macros(void) {
     void *static_var_ptrs[] = {static_var1, static_var2, static_var3, static_var4, static_var5};
 
     // Test list_for_each on empty list.
-    List *list = list_create(test_malloc, test_free, NULL);
+    List *list = list_create(test_config_no_ownership);
     size_t i = 0;
     list_for_each(n, list) {
         ++i;
@@ -1944,7 +1952,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_reverse on empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_reverse(n, list) {
         ++i;
@@ -1958,7 +1966,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe on empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe(n, list) {
         ++i;
@@ -1972,7 +1980,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_reverse on empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe_reverse(n, list) {
         ++i;
@@ -1986,7 +1994,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_continue on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_continue(n, NULL) {
         ++i;
@@ -2000,7 +2008,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_continue_reverse on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_continue_reverse(n, NULL) {
         ++i;
@@ -2014,7 +2022,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_continue on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe_continue(n, NULL) {
         ++i;
@@ -2028,7 +2036,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_continue_reverse on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe_continue_reverse(n, NULL) {
         ++i;
@@ -2042,7 +2050,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_from on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_from(n, NULL) {
         ++i;
@@ -2056,7 +2064,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_from_reverse on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_from_reverse(n, NULL) {
         ++i;
@@ -2070,7 +2078,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_from on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe_from(n, NULL) {
         ++i;
@@ -2084,7 +2092,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_from_reverse on NULL input.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     i = 0;
     list_for_each_safe_from_reverse(n, NULL) {
         ++i;
@@ -2098,7 +2106,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     ListNode *head = list_push_back(list, static_var1);
     ListNode *second = list_push_back(list, static_var2);
     ListNode *third = list_push_back(list, static_var3);
@@ -2138,7 +2146,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2178,7 +2186,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2219,7 +2227,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2260,7 +2268,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_continue on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2300,7 +2308,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_continue_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2340,7 +2348,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_continue on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2381,7 +2389,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_continue_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2422,7 +2430,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_from on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2462,7 +2470,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_from_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2502,7 +2510,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_from on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2543,7 +2551,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test list_for_each_safe_from_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     second = list_push_back(list, static_var2);
     third = list_push_back(list, static_var3);
@@ -2584,7 +2592,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -2604,7 +2612,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -2624,7 +2632,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe_continue on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     head = list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -2648,7 +2656,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe_continue_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -2672,7 +2680,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe_from on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);
@@ -2692,7 +2700,7 @@ void test_list_traversal_macros(void) {
     i = 100;
 
     // Test node removal using list_for_each_safe_from_reverse on non-empty list.
-    list = list_create(test_malloc, test_free, NULL);
+    list = list_create(test_config_no_ownership);
     list_push_back(list, static_var1);
     list_push_back(list, static_var2);
     list_push_back(list, static_var3);

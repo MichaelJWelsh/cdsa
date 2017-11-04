@@ -72,13 +72,13 @@ static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to
 
 static void* list_free_single_node__(List *list, ListNode *node) {
     // ONLY free data if list has ownership.
-    if (list->data_free != NULL) {
-        list->data_free(node->data);
-        list->list_free(node);
+    if (list->config.data_free != NULL) {
+        list->config.data_free(node->data);
+        list->config.list_free(node);
         return NULL;
     } else {
         void *data = node->data;
-        list->list_free(node);
+        list->config.list_free(node);
         return data;
     }
 }
@@ -88,18 +88,18 @@ static void list_free_all_nodes__(List *list) {
         // ONLY free data if list has ownership. These loops are optimized for speed, so the use of an extra
         // variable to make this loop "safe" (sort of like list_for_each_safe) is not needed thanks to the way
         // these loops are implemented.
-        if (list->data_free != NULL) {
+        if (list->config.data_free != NULL) {
             for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->data_free(n->prev->data);
-                list->list_free(n->prev);
+                list->config.data_free(n->prev->data);
+                list->config.list_free(n->prev);
             }
-            list->data_free(list->tail->data);
-            list->list_free(list->tail);
+            list->config.data_free(list->tail->data);
+            list->config.list_free(list->tail);
         } else {
             for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->list_free(n->prev);
+                list->config.list_free(n->prev);
             }
-            list->list_free(list->tail);
+            list->config.list_free(list->tail);
         }
     }
 }
@@ -144,20 +144,18 @@ static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to
  *
  * ======================================================================================================== */
 
-List* list_create(void* (*list_malloc)(size_t), void (*list_free)(void*), void (*data_free)(void*)) {
-    assert(list_malloc != NULL);
-    assert(list_free != NULL);
+List* list_create(ListConfig config) {
+    assert(config.list_malloc != NULL);
+    assert(config.list_free != NULL);
 
-    List *list = (List*) list_malloc(sizeof(List));
+    List *list = (List*) config.list_malloc(sizeof(List));
     if (list == NULL) {
         return NULL;
     }
 
     list->head = NULL;
     list->tail = NULL;
-    list->list_malloc = list_malloc;
-    list->list_free = list_free;
-    list->data_free = data_free;
+    list->config = config;
     list->size = 0;
 
     return list;
@@ -172,7 +170,7 @@ void list_destroy(void *list) {
 
     list_free_all_nodes__(list_ptr);
 
-    list_ptr->list_free(list_ptr);
+    list_ptr->config.list_free(list_ptr);
 }
 
 size_t list_index_of(List *list, ListNode *node) {
@@ -229,7 +227,7 @@ ListNode* list_insert_left(List *list, void *data, ListNode *node) {
     assert(list != NULL);
     assert(node != NULL);
 
-    ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
+    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
@@ -245,7 +243,7 @@ ListNode* list_insert_right(List *list, void *data, ListNode *node) {
     assert(list != NULL);
     assert(node != NULL);
 
-    ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
+    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
@@ -260,7 +258,7 @@ ListNode* list_insert_right(List *list, void *data, ListNode *node) {
 ListNode* list_push_front(List *list, void *data) {
     assert(list != NULL);
 
-    ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
+    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
@@ -275,7 +273,7 @@ ListNode* list_push_front(List *list, void *data) {
 ListNode* list_push_back(List *list, void *data) {
     assert(list != NULL);
 
-    ListNode *new_node = (ListNode*) list->list_malloc(sizeof(ListNode));
+    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
     if (new_node == NULL) {
         return NULL;
     }
@@ -410,9 +408,9 @@ void list_splice_left(List *list1, ListNode *node, List *list2, ListNode *from, 
     assert(list1 != NULL);
     assert(node != NULL);
     assert(list2 != NULL);
-    assert(list1->list_malloc == list2->list_malloc);
-    assert(list1->list_free == list2->list_free);
-    assert(list1->data_free == list2->data_free);
+    assert(list1->config.list_malloc == list2->config.list_malloc);
+    assert(list1->config.list_free == list2->config.list_free);
+    assert(list1->config.data_free == list2->config.data_free);
     assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
 
     if (range_size == 0) {
@@ -427,9 +425,9 @@ void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from,
     assert(list1 != NULL);
     assert(node != NULL);
     assert(list2 != NULL);
-    assert(list1->list_malloc == list2->list_malloc);
-    assert(list1->list_free == list2->list_free);
-    assert(list1->data_free == list2->data_free);
+    assert(list1->config.list_malloc == list2->config.list_malloc);
+    assert(list1->config.list_free == list2->config.list_free);
+    assert(list1->config.data_free == list2->config.data_free);
     assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
 
     if (range_size == 0) {
@@ -443,9 +441,9 @@ void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from,
 void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
     assert(list1 != NULL);
     assert(list2 != NULL);
-    assert(list1->list_malloc == list2->list_malloc);
-    assert(list1->list_free == list2->list_free);
-    assert(list1->data_free == list2->data_free);
+    assert(list1->config.list_malloc == list2->config.list_malloc);
+    assert(list1->config.list_free == list2->config.list_free);
+    assert(list1->config.data_free == list2->config.data_free);
     assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
 
     if (range_size == 0) {
@@ -459,9 +457,9 @@ void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, s
 void list_splice_back(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
     assert(list1 != NULL);
     assert(list2 != NULL);
-    assert(list1->list_malloc == list2->list_malloc);
-    assert(list1->list_free == list2->list_free);
-    assert(list1->data_free == list2->data_free);
+    assert(list1->config.list_malloc == list2->config.list_malloc);
+    assert(list1->config.list_free == list2->config.list_free);
+    assert(list1->config.data_free == list2->config.data_free);
     assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
 
     if (range_size == 0) {
