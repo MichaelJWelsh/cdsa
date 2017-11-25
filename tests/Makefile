@@ -1,12 +1,15 @@
-COMPILER=gcc
-FLAGS=-Wall -Werror -pedantic-errors -std=c99
-TEST_INCLUDES=alloc.c
+C_COMPILER=gcc
+C_FLAGS=-Wall -Werror -pedantic-errors -std=c89
 
-clean:
-	rm -f test_list
+CPP_COMPILER=g++
+CPP_FLAGS=-Wall -Werror -pedantic-errors -std=c++11
 
 all: test_list
 
 test_list:
-	$(COMPILER) $(TEST_INCLUDES) test_list.c ../src/list.c -o test_list $(FLAGS)
-	./test_list
+	$(C_COMPILER) test_list.c ../src/list.c -o test_list $(C_FLAGS)
+	./test_list C89
+	rm -f test_list
+	$(CPP_COMPILER) test_list.c ../src/list.c -o test_list $(CPP_FLAGS)
+	./test_list C++11
+	rm -f test_list

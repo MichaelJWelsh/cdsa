@@ -16,364 +16,347 @@ NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <stddef.h>
 
 #include "list.h"
 
-/* ========================================================================================================
- *
- *                                        STATIC FUNCTION PROTOTYPES
- *
- * ======================================================================================================== */
-
-/*
- * Free's the node and, if the list has ownership, also frees the data stored inside the node.
- *
- * No reassignment takes place on the list or its members.
- *
- * Returns the data that was stored inside the node if the list does NOT have ownership; otherwise, returns
- * NULL.
- */
-static void* list_free_single_node__(List *list, ListNode *node);
-
-/*
- * Free's all ListNodes in the list. If the list has ownership, the data stored in each ListNode is also
- * freed.
- *
- * No reassignment takes place on the list or its members.
- */
-static void list_free_all_nodes__(List *list);
-
-/*
- * Inserts the range [from, to] into the list, resulting in the following ListNode connectivity:
- *      ... <-> left <-> from <-> ... <-> to <-> right <-> ...
- *
- * The list's size is then incrememented to account for the new ListNode(s).
- */
-static void list_insert_range__(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size);
-
-/*
- * Removes the range [from, to] from the list, resulting in the following ListNode connectivity:
- *      ... <-> ...
- *
- * The list's size is then decremented to account for the loss of the ListNode(s).
- *
- * The removed ListNode(s) and their associated data stored within are NOT freed.
- */
-static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to, size_t range_size);
-
-/* ========================================================================================================
- *
- *                                        STATIC FUNCTION DEFINITIONS
- *
- * ======================================================================================================== */
-
-static void* list_free_single_node__(List *list, ListNode *node) {
-    // ONLY free data if list has ownership.
-    if (list->config.data_free != NULL) {
-        list->config.data_free(node->data);
-        list->config.list_free(node);
-        return NULL;
-    } else {
-        void *data = node->data;
-        list->config.list_free(node);
-        return data;
+ListFuncStat list_initialize(List *list) {
+    if (!list) {
+        return LIST_FUNC_STAT_ERROR;
     }
+
+    list->head = NULL;
+    list->tail = NULL;
+    list->size = 0;
+
+    return LIST_FUNC_STAT_OK;
 }
 
-static void list_free_all_nodes__(List *list) {
-    if (list->size > 0) {
-        // ONLY free data if list has ownership. These loops are optimized for speed, so the use of an extra
-        // variable to make this loop "safe" (sort of like list_for_each_safe) is not needed thanks to the way
-        // these loops are implemented.
-        if (list->config.data_free != NULL) {
-            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->config.data_free(n->prev->data);
-                list->config.list_free(n->prev);
+ListNode* list_head(List *list) {
+    return list ? list->head : NULL;
+}
+
+ListNode* list_tail(List *list) {
+    return list ? list->tail : NULL;
+}
+
+size_t list_size(List *list) {
+    return list ? list->size : 0;
+}
+
+ListNode* list_prev(ListNode *node) {
+    return node ? node->prev : NULL;
+}
+
+ListNode* list_next(ListNode *node) {
+    return node ? node->next : NULL;
+}
+
+int list_empty(List *list) {
+    return list ? list->size == 0 : 1;
+}
+
+ListFuncStat list_index_of(List *list, ListNode *node, size_t *out) {
+    if (!list || !node || !out) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    if (list->tail == node) {
+        *out = list->size - 1;
+        return LIST_FUNC_STAT_OK;
+    } else {
+        ListNode *n;
+        size_t i = 0;
+        list_for_each(n, list) {
+            if (n == node) {
+                *out = i;
+                return LIST_FUNC_STAT_OK;
             }
-            list->config.data_free(list->tail->data);
-            list->config.list_free(list->tail);
-        } else {
-            for (ListNode *n = list->head->next; n != NULL; n = n->next) {
-                list->config.list_free(n->prev);
-            }
-            list->config.list_free(list->tail);
+            ++i;
         }
     }
+
+    return LIST_FUNC_STAT_ERROR;
 }
 
-static void list_insert_range__(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size) {
-    if (left == NULL) {
-        from->prev = NULL;
-        list->head = from;
-    } else {
-        from->prev = left;
-        left->next = from;
-    }
-    if (right == NULL) {
-        to->next = NULL;
-        list->tail = to;
-    } else {
-        to->next = right;
-        right->prev = to;
+ListFuncStat list_at(List *list, size_t index, ListNode **out) {
+    ListNode *n;
+    size_t i;
+
+    if (!list || index >= list->size || !out) {
+        return LIST_FUNC_STAT_ERROR;
     }
 
-    list->size += range_size;
+    if (index < list->size / 2) {
+        i = 0;
+        list_for_each(n, list) {
+            if (i == index) {
+                *out = n;
+                return LIST_FUNC_STAT_OK;
+            }
+            ++i;
+        }
+    } else {
+        i = list->size - 1;
+        list_for_each_reverse(n, list) {
+            if (i == index) {
+                *out = n;
+                return LIST_FUNC_STAT_OK;
+            }
+            --i;
+        }
+    }
+
+    return LIST_FUNC_STAT_ERROR;
 }
 
-static void list_delete_range_no_free__(List *list, ListNode *from, ListNode *to, size_t range_size) {
+ListFuncStat list_insert_left(List *list, ListNode *new_node, ListNode *position) {
+    if (!list || !new_node) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_paste(list, position ? position->prev : NULL, new_node, new_node, position, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_insert_right(List *list, ListNode *new_node, ListNode *position) {
+    if (!list || !new_node) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_paste(list, position, new_node, new_node, position ? position->next : NULL, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_insert_front(List *list, ListNode *new_node) {
+    if (!list || !new_node) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_paste(list, NULL, new_node, new_node, list->head, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_insert_back(List *list, ListNode *new_node) {
+    if (!list || !new_node) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_paste(list, list->tail, new_node, new_node, NULL, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position) {
+    ListNode *from, *to;
+    size_t range_size;
+
+    if (!list || !src_list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    from = src_list->head;
+    to = src_list->tail;
+    range_size = src_list->size;
+
+    list_cut(src_list, from, to, range_size);
+    list_paste(list, position ? position->prev : NULL, from, to, position, range_size);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position) {
+    ListNode *from, *to;
+    size_t range_size;
+
+    if (!list || !src_list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    from = src_list->head;
+    to = src_list->tail;
+    range_size = src_list->size;
+
+    list_cut(src_list, from, to, range_size);
+    list_paste(list, position, from, to, position ? position->next : NULL, range_size);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_splice_front(List *list, List *src_list) {
+    ListNode *from, *to;
+    size_t range_size;
+
+    if (!list || !src_list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    from = src_list->head;
+    to = src_list->tail;
+    range_size = src_list->size;
+
+    list_cut(src_list, from, to, range_size);
+    list_paste(list, NULL, from, to, list->head, range_size);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_splice_back(List *list, List *src_list) {
+    ListNode *from, *to;
+    size_t range_size;
+
+    if (!list || !src_list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    from = src_list->head;
+    to = src_list->tail;
+    range_size = src_list->size;
+
+    list_cut(src_list, from, to, range_size);
+    list_paste(list, list->tail, from, to, NULL, range_size);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_remove(List *list, ListNode *node) {
+    if (!list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_cut(list, node, node, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_remove_front(List *list) {
+    if (!list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_cut(list, list->head, list->head, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_remove_back(List *list) {
+    if (!list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_cut(list, list->tail, list->tail, 1);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_remove_all(List *list) {
+    if (!list) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    list_cut(list, list->head, list->tail, list->size);
+
+    return LIST_FUNC_STAT_OK;
+}
+
+ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_size) {
+    if (!list || (from && !to) || (!from && to)) {
+        return LIST_FUNC_STAT_ERROR;
+    }
+
+    if (!from) {
+        return LIST_FUNC_STAT_OK;
+    }
+
     if (list->head == from) {
         list->head = to->next;
     } else {
         from->prev->next = to->next;
     }
+
     if (list->tail == to) {
         list->tail = from->prev;
     } else {
         to->next->prev = from->prev;
     }
 
+    from->prev = LIST_POISON_PREV;
+    to->next = LIST_POISON_NEXT;
+
     list->size -= range_size;
+
+    return LIST_FUNC_STAT_OK;
 }
 
-/* ========================================================================================================
- *
- *                                        EXTERN FUNCTION DEFINITIONS
- *
- * ======================================================================================================== */
-
-List* list_create(ListConfig config) {
-    assert(config.list_malloc != NULL);
-    assert(config.list_free != NULL);
-
-    List *list = (List*) config.list_malloc(sizeof(List));
-    if (list == NULL) {
-        return NULL;
+ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size) {
+    if (!list || (from && !to) || (!from && to)) {
+        return LIST_FUNC_STAT_ERROR;
     }
 
-    list->head = NULL;
-    list->tail = NULL;
-    list->config = config;
-    list->size = 0;
-
-    return list;
-}
-
-void list_destroy(void *list) {
-    if (list == NULL) {
-        return;
+    if (!from) {
+        return LIST_FUNC_STAT_OK;
     }
 
-    List *list_ptr = (List*) list;
-
-    list_free_all_nodes__(list_ptr);
-
-    list_ptr->config.list_free(list_ptr);
-}
-
-size_t list_index_of(List *list, ListNode *node) {
-    assert(list != NULL);
-    assert(node != NULL);
-
-    // Micro-optimization for cases where list->tail == node, since we iterate from head to tail.
-    if (list->tail == node) {
-        return list->size - 1;
-    }
-
-    size_t i = 0;
-    list_for_each(n, list) {
-        if (n == node) {
-            return i;
-        }
-        ++i;
-    }
-
-    // Reaching this point means that the list and node are not related.
-    assert(0);
-    return (size_t) -1;
-}
-
-ListNode* list_at(List *list, size_t index) {
-    assert(list != NULL);
-    assert(index < list->size);
-
-    // Figure out if it's relatively quicker to iterate from front to back or back to front.
-    if (index < list->size / 2) {
-        size_t i = 0;
-        list_for_each(n, list) {
-            if (i == index) {
-                return n;
-            }
-            ++i;
-        }
+    if (left) {
+        left->next = from;
     } else {
-        size_t i = list->size - 1;
-        list_for_each_reverse(n, list) {
-            if (i == index) {
-                return n;
-            }
-            --i;
-        }
+        list->head = from;
     }
+    from->prev = left;
 
-    // Out of bounds.
-    assert(0);
-    return NULL;
-}
-
-ListNode* list_insert_left(List *list, void *data, ListNode *node) {
-    assert(list != NULL);
-    assert(node != NULL);
-
-    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
-    if (new_node == NULL) {
-        return NULL;
+    if (right) {
+        right->prev = to;
+    } else {
+        list->tail = to;
     }
+    to->next = right;
 
-    new_node->data = data;
+    list->size += range_size;
 
-    list_insert_range__(list, node->prev, new_node, new_node, node, 1);
-
-    return new_node;
+    return LIST_FUNC_STAT_OK;
 }
 
-ListNode* list_insert_right(List *list, void *data, ListNode *node) {
-    assert(list != NULL);
-    assert(node != NULL);
+ListFuncStat list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b)) {
+    ListNode *head, *tail, *left, *right, *next;
+    size_t list_size, num_merges, left_size, right_size;
 
-    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
-    if (new_node == NULL) {
-        return NULL;
+    if (!list || !compare) {
+        return LIST_FUNC_STAT_ERROR;
     }
-
-    new_node->data = data;
-
-    list_insert_range__(list, node, new_node, new_node, node->next, 1);
-
-    return new_node;
-}
-
-ListNode* list_push_front(List *list, void *data) {
-    assert(list != NULL);
-
-    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
-    if (new_node == NULL) {
-        return NULL;
-    }
-
-    new_node->data = data;
-
-    list_insert_range__(list, NULL, new_node, new_node, list->head, 1);
-
-    return new_node;
-}
-
-ListNode* list_push_back(List *list, void *data) {
-    assert(list != NULL);
-
-    ListNode *new_node = (ListNode*) list->config.list_malloc(sizeof(ListNode));
-    if (new_node == NULL) {
-        return NULL;
-    }
-
-    new_node->data = data;
-
-    list_insert_range__(list, list->tail, new_node, new_node, NULL, 1);
-
-    return new_node;
-}
-
-void list_clear(List *list) {
-    assert(list != NULL);
-
-    list_free_all_nodes__(list);
-
-    list->head = NULL;
-    list->tail = NULL;
-    list->size = 0;
-}
-
-void* list_remove(List *list, ListNode *node) {
-    assert(list != NULL);
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    list_delete_range_no_free__(list, node, node, 1);
-
-    return list_free_single_node__(list, node);
-}
-
-void* list_pop_front(List *list) {
-    assert(list != NULL);
-
-    if (list->size == 0) {
-        return NULL;
-    }
-
-    ListNode *node = list->head;
-    list_delete_range_no_free__(list, node, node, 1);
-
-    return list_free_single_node__(list, node);
-}
-
-void* list_pop_back(List *list) {
-    assert(list != NULL);
-
-    if (list->size == 0) {
-        return NULL;
-    }
-
-    ListNode *node = list->tail;
-    list_delete_range_no_free__(list, node, node, 1);
-
-    return list_free_single_node__(list, node);
-}
-
-// Iterative merge sort adapted from:
-// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
-// https://stackoverflow.com/questions/7685/merge-sort-a-linked-list
-void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
-    assert(list != NULL);
-    assert(compare_data != NULL);
 
     if (list->size < 2) {
-        return;
+        return LIST_FUNC_STAT_OK;
     }
 
-    size_t list_size = 1, num_merges, left_size, right_size;
-    ListNode *head = list->head, *tail, *left, *right, *next;
-
+    list_size = 1;
+    head = list->head;
     do {
         num_merges = 0;
         left = head;
         head = NULL;
         tail = NULL;
-
-        while (left != NULL) {
+        while (left) {
             ++num_merges;
             right = left;
             left_size = 0;
             right_size = list_size;
-
-            while (right != NULL && left_size < list_size) {
+            while (right && left_size < list_size) {
                 ++left_size;
                 right = right->next;
             }
-
-            while (left_size > 0 || (right_size > 0 && right != NULL)) {
+            while (left_size > 0 || (right_size > 0 && right)) {
                 if (left_size == 0) {
                     next = right;
                     right = right->next;
                     --right_size;
-                } else if (right_size == 0 || right == NULL) {
+                } else if (right_size == 0 || !right) {
                     next = left;
                     left = left->next;
                     --left_size;
-                } else if (compare_data(left->data, right->data) <= 0) {
+                } else if (compare(left, right) <= 0) {
                     next = left;
                     left = left->next;
                     --left_size;
@@ -382,90 +365,21 @@ void list_sort(List *list, int (*compare_data)(const void*, const void*)) {
                     right = right->next;
                     --right_size;
                 }
-
-                if (tail != NULL) {
+                if (tail) {
                     tail->next = next;
                 } else {
                     head = next;
                 }
-
                 next->prev = tail;
                 tail = next;
             }
-
             left = right;
         }
-
         tail->next = NULL;
         list_size <<= 1;
     } while (num_merges > 1);
-
     list->head = head;
     list->tail = tail;
-}
 
-void list_splice_left(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size) {
-    assert(list1 != NULL);
-    assert(node != NULL);
-    assert(list2 != NULL);
-    assert(list1->config.list_malloc == list2->config.list_malloc);
-    assert(list1->config.list_free == list2->config.list_free);
-    assert(list1->config.data_free == list2->config.data_free);
-    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
-
-    if (range_size == 0) {
-        return;
-    }
-
-    list_delete_range_no_free__(list2, from, to, range_size);
-    list_insert_range__(list1, node->prev, from, to, node, range_size);
-}
-
-void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size) {
-    assert(list1 != NULL);
-    assert(node != NULL);
-    assert(list2 != NULL);
-    assert(list1->config.list_malloc == list2->config.list_malloc);
-    assert(list1->config.list_free == list2->config.list_free);
-    assert(list1->config.data_free == list2->config.data_free);
-    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
-
-    if (range_size == 0) {
-        return;
-    }
-
-    list_delete_range_no_free__(list2, from, to, range_size);
-    list_insert_range__(list1, node, from, to, node->next, range_size);
-}
-
-void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
-    assert(list1 != NULL);
-    assert(list2 != NULL);
-    assert(list1->config.list_malloc == list2->config.list_malloc);
-    assert(list1->config.list_free == list2->config.list_free);
-    assert(list1->config.data_free == list2->config.data_free);
-    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
-
-    if (range_size == 0) {
-        return;
-    }
-
-    list_delete_range_no_free__(list2, from, to, range_size);
-    list_insert_range__(list1, NULL, from, to, list1->head, range_size);
-}
-
-void list_splice_back(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size) {
-    assert(list1 != NULL);
-    assert(list2 != NULL);
-    assert(list1->config.list_malloc == list2->config.list_malloc);
-    assert(list1->config.list_free == list2->config.list_free);
-    assert(list1->config.data_free == list2->config.data_free);
-    assert((from != NULL && to != NULL) || (from == NULL && to == NULL));
-
-    if (range_size == 0) {
-        return;
-    }
-
-    list_delete_range_no_free__(list2, from, to, range_size);
-    list_insert_range__(list1, list1->tail, from, to, NULL, range_size);
+    return LIST_FUNC_STAT_OK;
 }

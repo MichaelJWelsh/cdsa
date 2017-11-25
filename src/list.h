@@ -20,127 +20,256 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * @file    list.h
  * @brief   DOUBLY LINKED LIST
  *
+ * Embed one or more @ref ListNode's into your struct to make it a potential node in one or more linked lists.
+ * The @ref List structure keeps track of a chain of @ref ListNode's. A @ref List structure MUST be
+ * initialized before it is used. A @ref ListNode structure does NOT need to be initialized before it is used.
+ * A @ref ListNode should belong to at most ONE @ref List.
+ *
+ * Example:
+ *          struct Object {
+ *              int val;
+ *              ListNode n;
+ *          };
+ *
+ *          int main(void) {
+ *              struct Object obj;
+ *              List list;
+ *              int copy_val;
+ *
+ *              list_initialize(&list);
+ *              list_insert_back(&list, &obj.n);
+ *
+ *              copy_val = list_entry(list_head(&list), struct Object, n)->val;
+ *              assert(obj.val == copy_val);
+ *
+ *              return 0;
+ *          }
+ *
  * Dependencies:
- *      -   C99 standard library
+ *      -   C89 stddef.h
  *
  * API:
+ *      ====  TYPES  ====
+ *      -   typedef struct List List
+ *      -   typedef struct ListNode ListNode
+ *      -   typedef enum ListFuncStat ListFuncStat
+ *          -   LIST_FUNC_STAT_OK = 0
+ *          -   LIST_FUNC_STAT_ERROR = -1
+ *
  *      ====  FUNCTIONS  ====
- *      -   list_create
- *      -   list_destroy
- *      -   list_index_of
- *      -   list_at
- *      -   list_insert_left
- *      -   list_insert_right
- *      -   list_push_front
- *      -   list_push_back
- *      -   list_clear
- *      -   list_remove
- *      -   list_pop_front
- *      -   list_pop_back
- *      -   list_sort
- *      -   list_splice_left
- *      -   list_splice_right
- *      -   list_splice_front
- *      -   list_splice_back
+ *      Initializers:
+ *          -   list_initialize
+ *      Accessors:
+ *          -   list_head
+ *          -   list_tail
+ *          -   list_size
+ *          -   list_prev
+ *          -   list_next
+ *      Properties:
+ *          -   list_empty
+ *      Array Interfacing:
+ *          -   list_index_of
+ *          -   list_at
+ *      Insertion:
+ *          -   list_insert_left
+ *          -   list_insert_right
+ *          -   list_insert_front
+ *          -   list_insert_back
+ *      Splicing:
+ *          -   list_splice_left
+ *          -   list_splice_right
+ *          -   list_splice_front
+ *          -   list_splice_back
+ *      Removal:
+ *          -   list_remove
+ *          -   list_remove_front
+ *          -   list_remove_back
+ *          -   list_remove_all
+ *      Low-Level Manipulation:
+ *          -   list_cut
+ *          -   list_paste
+ *      Sorting:
+ *          -   list_sort
  *
  *      ====  MACROS  ====
- *      -   list_for_each
- *      -   list_for_each_reverse
- *      -   list_for_each_safe
- *      -   list_for_each_safe_reverse
- *      -   list_for_each_continue
- *      -   list_for_each_continue_reverse
- *      -   list_for_each_safe_continue
- *      -   list_for_each_safe_continue_reverse
- *      -   list_for_each_from
- *      -   list_for_each_from_reverse
- *      -   list_for_each_safe_from
- *      -   list_for_each_safe_from_reverse
+ *      Constants:
+ *          -   LIST_POISON_PREV
+ *          -   LIST_POISON_NEXT
+ *      Initializers:
+ *          -   LIST_INITIALIZER
+ *          -   LIST_NODE_INITIALIZER
+ *      Accessors:
+ *          -   list_entry
+ *      Traversal:
+ *          -   list_for_each
+ *          -   list_for_each_reverse
+ *          -   list_for_each_safe
+ *          -   list_for_each_safe_reverse
+ *          -   list_for_each_after
+ *          -   list_for_each_after_reverse
+ *          -   list_for_each_safe_after
+ *          -   list_for_each_safe_after_reverse
+ *          -   list_for_each_from
+ *          -   list_for_each_from_reverse
+ *          -   list_for_each_safe_from
+ *          -   list_for_each_safe_from_reverse
  */
 
-#ifndef CDSAA_LIST_H
-#define CDSAA_LIST_H
+#ifndef LIST_H
+#define LIST_H
 
 #ifdef __cplusplus
 extern "C" {
-#endif // __cplusplus
+#endif /* __cplusplus */
 
-#include <stdlib.h>
+#include <stddef.h>
 
-/**
- * Represents a node in a @ref List.
- */
-typedef struct ListNode {
-    void *data;
-    struct ListNode *prev;
-    struct ListNode *next;
-} ListNode;
+/* ========================================================================================================
+ *
+ *                                                  TYPES
+ *
+ * ======================================================================================================== */
 
-/**
- * Represents the low-level configuration of a @ref List.
- */
-typedef struct ListConfig {
-    /**
-     * The malloc function used to allocate all memory used by the @ref List, including the creation of the
-     * @ref List itself. For example, @ref ListNode's are allocated using this function. Cannot be NULL.
-     */
-    void* (*list_malloc)(size_t);
+/* Struct type declarations. */
+struct List;
+struct ListNode;
 
-    /**
-     * The free function used to deallocate all memory allocated by the @ref List. Cannot be NULL.
-     */
-    void (*list_free)(void*);
-
-    /**
-     * The free function used to deallocate the stored data in each @ref ListNode. If NULL, then the @ref List
-     * will not take ownership over the data contained in each @ref ListNode, meaning it will not free up the
-     * data in a @ref ListNode when the @ref ListNode is to be deallocated.
-     */
-    void (*data_free)(void*);
-} ListConfig;
+/* Struct typedef's. */
+typedef struct List List;
+typedef struct ListNode ListNode;
 
 /**
  * Represents a doubly linked list.
  */
-typedef struct List {
+struct List {
     ListNode *head;
     ListNode *tail;
     size_t size;
-    ListConfig config;
-} List;
+};
 
 /**
- * Creates (allocates) a new empty @ref List.
+ * Represents a node in a @ref List. Embed this into your structure to make it a node.
+ */
+struct ListNode {
+    ListNode *prev;
+    ListNode *next;
+};
+
+/**
+ * Represents the error codes returned by certain functions that have a set of preconditions that must be
+ * obeyed. In the case of error, these functions provide a strong guarantee that all arguments passed remain
+ * unchanged.
+ */
+typedef enum ListFuncStat {
+    LIST_FUNC_STAT_OK = 0,
+    LIST_FUNC_STAT_ERROR = -1
+} ListFuncStat;
+
+/* ========================================================================================================
+ *
+ *                                               PROTOTYPES
+ *
+ * ======================================================================================================== */
+
+/**
+ * Initializes/resets the @ref list.
  *
  * Requirements:
- *      -   @ref config.list_malloc != NULL
- *      -   @ref config.list_free != NULL
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
- * @param config                The @ref ListConfig to be used in the new @ref List.
- * @return                      NULL if the allocation failed, otherwise the memory address of newly created
- *                              @ref List.
+ * @param list                  The @ref List to be initialized/reset.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-List* list_create(ListConfig config);
+ListFuncStat list_initialize(List *list);
 
 /**
- * Deallocates the @ref List and all @ref ListNodes associated with it. If the @ref list has ownership over
- * the stored data, then all stored data is also deallocated. If @ref list is a NULL pointer, this function
- * simply returns. Note that the parameter of this function is a pointer-to-void, meaning that its type is the
- * same as every generic free function, meaning that, for example, @ref list->config.data_free can equal this
- * function.
+ * Returns the head @ref ListNode of the @ref list. Returns NULL if @ref list == NULL.
  *
  * Requirements:
  *      -   none
  *
  * Time complexity:
- *      -   O(n)
+ *      -   O(1)
  *
- * @param list                  The @ref List to be destroyed.
+ * @param list                  The @ref List whose "head" member will be returned.
+ * @return                      The head @ref ListNode of the @ref list. NULL if @ref list == NULL.
  */
-void list_destroy(void *list);
+ListNode* list_head(List *list);
+
+/**
+ * Returns the tail @ref ListNode of the @ref list. Returns NULL if @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "tail" member will be returned.
+ * @return                      The tail @ref ListNode of the @ref list. NULL if @ref list == NULL.
+ */
+ListNode* list_tail(List *list);
+
+/**
+ * Returns the size of the @ref list. Returns 0 if @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "size" member will be returned.
+ * @return                      The size of the @ref list. 0 if @ref list == NULL.
+ */
+size_t list_size(List *list);
+
+/**
+ * Returns the @ref ListNode before the @ref node. Returns NULL if @ref node == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param node                  The @ref ListNode whose "prev" member will be returned.
+ * @return                      The @ref ListNode before the @ref node. NULL if @ref node == NULL.
+ */
+ListNode* list_prev(ListNode *node);
+
+/**
+ * Returns the @ref ListNode after the @ref node. Returns NULL if @ref node == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param node                  The @ref ListNode whose "next" member will be returned.
+ * @return                      The @ref ListNode after the @ref node. NULL if @ref node == NULL.
+ */
+ListNode* list_next(ListNode *node);
+
+/**
+ * Returns whether or not the @ref list is empty (i.e. @ref list->size == 0). Returns 1 (true) if
+ * @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "size" member will be used to determine if it is empty.
+ * @return                      Whether or not the @ref list is empty (i.e. @ref list->size == 0). 1 (true) if
+ *                              @ref list == NULL.
+ */
+int list_empty(List *list);
 
 /**
  * Retrieves the index of the @ref node in the @ref list.
@@ -148,7 +277,7 @@ void list_destroy(void *list);
  * Requirements:
  *      -   @ref list != NULL
  *      -   @ref node != NULL
- *      -   @ref node is part of @ref list
+ *      -   @ref out != NULL
  *
  * Time complexity:
  *      -   If front/back:
@@ -159,9 +288,10 @@ void list_destroy(void *list);
  *
  * @param list                  The @ref List that contains the @ref node.
  * @param node                  The @ref ListNode whose index is wanted.
- * @return                      The index of the @ref node in the @ref list.
+ * @param out                   The variable where the index of the @ref node will be stored.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-size_t list_index_of(List *list, ListNode *node);
+ListFuncStat list_index_of(List *list, ListNode *node, size_t *out);
 
 /**
  * Retrieves the @ref ListNode at the @ref index.
@@ -169,6 +299,7 @@ size_t list_index_of(List *list, ListNode *node);
  * Requirements:
  *      -   @ref list != NULL
  *      -   @ref index < @ref list->size
+ *      -   @ref out != NULL
  *
  * Time complexity:
  *      -   If front/back:
@@ -179,117 +310,167 @@ size_t list_index_of(List *list, ListNode *node);
  *
  * @param list                  The @ref List containing nodes.
  * @param index                 The index of the wanted @ref ListNode.
- * @return                      The @ref ListNode at the @ref index.
+ * @param out                   The variable where the @ref ListNode at the @ref index will be stored.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListNode* list_at(List *list, size_t index);
+ListFuncStat list_at(List *list, size_t index, ListNode **out);
 
 /**
- * Inserts a newly allocated @ref ListNode with value @ref data to the left of @ref node.
+ * Inserts the @ref new_node to the left of the @ref position. If @ref position == NULL, inserts the
+ * @ref new_node at the head of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
- *      -   @ref node != NULL
- *      -   @ref node is part of @ref list
+ *      -   @ref new_node != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @param data                  The data of the new @ref ListNode.
- * @param node                  The @ref ListNode which is used as a reference point.
- * @return                      NULL if allocation of new @ref ListNode failed, otherwise returns the new
- *                              @ref ListNode.
+ * @param new_node              The @ref ListNode to be inserted.
+ * @param position              The @ref ListNode in the @ref list used as a reference point.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListNode* list_insert_left(List *list, void *data, ListNode *node);
+ListFuncStat list_insert_left(List *list, ListNode *new_node, ListNode *position);
 
 /**
- * Inserts a newly allocated @ref ListNode with value @ref data to the right of @ref node.
+ * Inserts the @ref new_node to the right of the @ref position. If @ref position == NULL, inserts the
+ * @ref new_node at the tail of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
- *      -   @ref node != NULL
- *      -   @ref node is part of @ref list
+ *      -   @ref new_node != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @param data                  The data of the new @ref ListNode.
- * @param node                  The @ref ListNode which is used as a reference point.
- * @return                      NULL if allocation of new @ref ListNode failed, otherwise returns the new
- *                              @ref ListNode.
+ * @param new_node              The @ref ListNode to be inserted.
+ * @param position              The @ref ListNode in the @ref list used as a reference point.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListNode* list_insert_right(List *list, void *data, ListNode *node);
+ListFuncStat list_insert_right(List *list, ListNode *new_node, ListNode *position);
 
 /**
- * Pushes a newly allocated @ref ListNode with value @ref data into the front of the @ref list.
+ * Inserts the @ref new_node into the front of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
+ *      -   @ref new_node != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @param data                  The data of the new @ref ListNode.
- * @return                      NULL if allocation of new @ref ListNode failed, otherwise returns the new
- *                              @ref ListNode.
+ * @param new_node              The @ref ListNode to be inserted.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListNode* list_push_front(List *list, void *data);
+ListFuncStat list_insert_front(List *list, ListNode *new_node);
 
 /**
- * Pushes a newly allocated @ref ListNode with value @ref data into the back of the @ref list.
+ * Inserts the @ref new_node into the back of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
+ *      -   @ref new_node != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @param data                  The data of the new @ref ListNode.
- * @return                      NULL if allocation of new @ref ListNode failed, otherwise returns the new
- *                              @ref ListNode.
+ * @param new_node              The @ref ListNode to be inserted.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListNode* list_push_back(List *list, void *data);
+ListFuncStat list_insert_back(List *list, ListNode *new_node);
 
 /**
- * Clears the @ref list of all @ref ListNode's and deallocates them. If the @ref list has ownership over the
- * stored data, then all stored data is also deallocated.
+ * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the @ref list to the left of
+ * the @ref position. If @ref position == NULL, inserts all the @ref ListNode's into the head of the
+ * @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
+ *      -   @ref src_list != NULL
  *
  * Time complexity:
- *      -   O(n)
+ *      -   O(1)
  *
- * @param list                  The @ref List to clear.
+ * @param list                  The consumer @ref List to which elements are moved.
+ * @param src_list              The producer @ref List from which elements are removed.
+ * @param position              The @ref ListNode in the @ref list used as a reference point.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-void list_clear(List *list);
+ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position);
 
 /**
- * Removes the @ref node from the @ref list and deallocates it. If the @ref list has ownership over the stored
- * data, then the @ref node's stored data is also deallocated. If @ref node is a NULL pointer, this function
- * simply returns NULL.
+ * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the @ref list to the right of
+ * the @ref position. If @ref position == NULL, inserts all the @ref ListNode's into the tail of the
+ * @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
- *      -   If @ref node != NULL, then it must be part of @ref list
+ *      -   @ref src_list != NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The consumer @ref List to which elements are moved.
+ * @param src_list              The producer @ref List from which elements are removed.
+ * @param position              The @ref ListNode in the @ref list used as a reference point.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position);
+
+/**
+ * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the front of the @ref list.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
+ *      -   @ref src_list != NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The consumer @ref List to which elements are moved.
+ * @param src_list              The producer @ref List from which elements are removed.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_splice_front(List *list, List *src_list);
+
+/**
+ * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the back of the @ref list.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
+ *      -   @ref src_list != NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The consumer @ref List to which elements are moved.
+ * @param src_list              The producer @ref List from which elements are removed.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_splice_back(List *list, List *src_list);
+
+/**
+ * Removes the @ref node from the @ref list. If @ref node == NULL, this function simply returns.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List containing the @ref node to be removed.
- * @param node                  The @ref ListNode to be removed.
- * @return                      NULL if @ref node == NULL or the @ref list has ownership of the stored data to
- *                              be removed, otherwise returns the stored data in the removed @ref node.
+ * @param node                  The @ref ListNode in the @ref list to be removed.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-void* list_remove(List *list, ListNode *node);
+ListFuncStat list_remove(List *list, ListNode *node);
 
 /**
- * Removes the front @ref ListNode from the @ref list and deallocates it. If the @ref list has ownership over
- * the stored data, then the @ref ListNode's data is also deallocated. If the @ref list is empty, this
- * function simply returns NULL.
+ * Removes the front @ref ListNode from the @ref list. If the @ref list is empty, this function simply
+ * returns.
  *
  * Requirements:
  *      -   @ref list != NULL
@@ -297,16 +478,13 @@ void* list_remove(List *list, ListNode *node);
  * Time complexity:
  *      -   O(1)
  *
- * @param list                  The @ref List containing the @ref ListNode to be removed.
- * @return                      NULL if the @ref list is empty or has ownership of the stored data to be
- *                              removed, otherwise returns the stored data in the removed @ref ListNode.
+ * @param list                  The @ref List to be operated on.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-void* list_pop_front(List *list);
+ListFuncStat list_remove_front(List *list);
 
 /**
- * Removes the back @ref ListNode from the @ref list and deallocates it. If the @ref list has ownership over
- * the stored data, then the @ref ListNode's data is also deallocated. If the @ref list is empty, this
- * function simply returns NULL.
+ * Removes the back @ref ListNode from the @ref list. If the @ref list is empty, this function simply returns.
  *
  * Requirements:
  *      -   @ref list != NULL
@@ -314,11 +492,84 @@ void* list_pop_front(List *list);
  * Time complexity:
  *      -   O(1)
  *
- * @param list                  The @ref List containing the @ref ListNode to be removed.
- * @return                      NULL if the @ref list is empty or has ownership of the stored data to be
- *                              removed, otherwise returns the stored data in the removed @ref ListNode.
+ * @param list                  The @ref List to be operated on.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-void* list_pop_back(List *list);
+ListFuncStat list_remove_back(List *list);
+
+/**
+ * Removes all the nodes from the @ref list. If the @ref list is empty, this function simply returns.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref list to be operated on.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_remove_all(List *list);
+
+/**
+ * This is a low-level function and should be used with care.
+ *
+ * Removes the range [@ref from, @ref to] from the @ref list, resulting in the following @ref ListNode
+ * connectivity:
+ *      ... <-> ...
+ *
+ * The @ref list->size is then decremented to account for the loss of the @ref ListNode's.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
+ *      -   Either @ref from and @ref to are both NULL, or are both non-NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List to be operated on.
+ * @param from                  The @ref ListNode that marks the beginning of the range. @ref from can equal
+ *                              @ref to.
+ * @param to                    The @ref ListNode the marks the end of the range. @ref from can equal @ref to.
+ * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
+ *                              have such a low time complexity because it does not calculate the size of the
+ *                              range itself. It is up to the user to calculate the size of the range. This is
+ *                              done because sometimes the size of the range is known without having to
+ *                              iterate from the beginning to the end of the range.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_size);
+
+/**
+ * This is a low-level function and should be used with care.
+ *
+ * Inserts the range [@ref from, @ref to] into the @ref list, resulting in the following @ref ListNode
+ * connectivity:
+ *          ... <-> left <-> from <-> ... <-> to <-> right <-> ...
+ *
+ * The @ref list->size is then incrememented to account for the new @ref ListNode's.
+ *
+ * Requirements:
+ *      -   @ref list != NULL
+ *      -   Either @ref from and @ref to are both NULL, or are both non-NULL
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List to be operated on.
+ * @param left                  The @ref ListNode that will be to the left of @ref from. Can be NULL.
+ * @param from                  The @ref ListNode that marks the beginning of the range. @ref from can equal
+ *                              @ref to.
+ * @param to                    The @ref ListNode the marks the end of the range. @ref from can equal @ref to.
+ * @param right                 The @ref ListNode that will be to the right of @ref to. Can be NULL.
+ * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
+ *                              have such a low time complexity because it does not calculate the size of the
+ *                              range itself. It is up to the user to calculate the size of the range. This is
+ *                              done because sometimes the size of the range is known without having to
+ *                              iterate from the beginning to the end of the range.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ */
+ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size);
 
 /**
  * Uses the merge sort algorithm to sort the @ref list in-place. This sort is stable (order of "equal"
@@ -327,179 +578,75 @@ void* list_pop_back(List *list);
  *
  * Requirements:
  *      -   @ref list != NULL
- *      -   @ref compare_data != NULL
+ *      -   @ref compare != NULL
  *
  * Time complexity:
  *      -   O(nlog(n))
  *
  * @param list                  The @ref List to sort.
- * @param compare_data          The compare function to be used. The data members of the two @ref ListNode's
- *                              being compared is passed to this function.
+ * @param compare               The compare function to be used.
+ * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-void list_sort(List *list, int (*compare_data)(const void*, const void*));
+ListFuncStat list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b));
+
+/* ========================================================================================================
+ *
+ *                                                 MACROS
+ *
+ * ======================================================================================================== */
 
 /**
- * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the left of @ref node in
- * @ref list1. This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1
- * and removes them from @ref list2, altering the sizes of both @ref List's. This operation does not involve
- * the creation or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If
- * @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal
- * @ref list2 so long as several additional requirements are met.
- *
- * Requirements:
- *      -   @ref list1 != NULL
- *      -   @ref node != NULL
- *      -   @ref node is part of @ref list1
- *      -   @ref list2 != NULL
- *      -   The @ref ListConfig of both @ref List's must be equal.
- *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
- *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
- *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
- *      -   If @ref list1 == @ref list2, then @ref node cannot be in the range [@ref from, @ref to]
- *
- * Time complexity:
- *      O(1)
- *
- * @param list1                 The @ref List that will become the new owner of the @ref ListNode's in the
- *                              range [@ref from, @ref to].
- * @param node                  The @ref ListNode which is used as a reference point.
- * @param list2                 The @ref List that is the original owner of the @ref ListNode's in the range
- *                              [@ref from, @ref to].
- * @param from                  The @ref ListNode that marks the beginning of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param to                    The @ref ListNode that marks the end of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
- *                              have such a low time complexity because it does not calculate the size of the
- *                              range itself. It is up to the user to calculate the size of the range. This is
- *                              done because sometimes the size of the range is known without having to
- *                              iterate from the beginning to the end of the range.
+ * Non-NULL pointer that will result in page faults under normal circumstances. Is the "prev" member of the
+ * first @ref ListNode in a chain of removed @ref ListNode's or a single removed @ref ListNode. Useful for
+ * identifying bugs.
  */
-void list_splice_left(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size);
+#define LIST_POISON_PREV ((ListNode*) 0x100)
 
 /**
- * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the right of @ref node
- * in @ref list1. This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into
- * @ref list1 and removes them from @ref list2, altering the sizes of both @ref List's. This operation does
- * not involve the creation or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must
- * be equal. If @ref from and @ref to are both equal to NULL, this function simply returns. @ref list1 is
- * allowed to equal @ref list2 so long as several additional requirements are met.
- *
- * Requirements:
- *      -   @ref list1 != NULL
- *      -   @ref node != NULL
- *      -   @ref node is part of @ref list1
- *      -   @ref list2 != NULL
- *      -   The @ref ListConfig of both @ref List's must be equal.
- *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
- *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
- *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
- *      -   If @ref list1 == @ref list2, then @ref node cannot be in the range [@ref from, @ref to]
- *
- * Time complexity:
- *      O(1)
- *
- * @param list1                 The @ref List that will become the new owner of the @ref ListNode's in the
- *                              range [@ref from, @ref to].
- * @param node                  The @ref ListNode which is used as a reference point.
- * @param list2                 The @ref List that is the original owner of the @ref ListNode's in the range
- *                              [@ref from, @ref to].
- * @param from                  The @ref ListNode that marks the beginning of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param to                    The @ref ListNode that marks the end of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
- *                              have such a low time complexity because it does not calculate the size of the
- *                              range itself. It is up to the user to calculate the size of the range. This is
- *                              done because sometimes the size of the range is known without having to
- *                              iterate from the beginning to the end of the range.
+ * Non-NULL pointer that will result in page faults under normal circumstances. Is the "next" member of the
+ * last @ref ListNode in a chain of removed @ref ListNode's or a single removed @ref ListNode. Useful for
+ * identifying bugs.
  */
-void list_splice_right(List *list1, ListNode *node, List *list2, ListNode *from, ListNode *to, size_t range_size);
+#define LIST_POISON_NEXT ((ListNode*) 0x200)
 
 /**
- * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the front of @ref list1.
- * This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1 and removes
- * them from @ref list2, altering the sizes of both @ref List's. This operation does not involve the creation
- * or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If @ref from and
- * @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal @ref list2.
- *
- * Requirements:
- *      -   @ref list1 != NULL
- *      -   @ref list2 != NULL
- *      -   The @ref ListConfig of both @ref List's must be equal.
- *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
- *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
- *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
- *
- * Time complexity:
- *      O(1)
- *
- * @param list1                 The @ref List that will become the new owner of the @ref ListNode's in the
- *                              range [@ref from, @ref to].
- * @param list2                 The @ref List that is the original owner of the @ref ListNode's in the range
- *                              [@ref from, @ref to].
- * @param from                  The @ref ListNode that marks the beginning of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param to                    The @ref ListNode that marks the end of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
- *                              have such a low time complexity because it does not calculate the size of the
- *                              range itself. It is up to the user to calculate the size of the range. This is
- *                              done because sometimes the size of the range is known without having to
- *                              iterate from the beginning to the end of the range.
+ * Used for initializing a @ref List. Alternatively you can call @ref list_initialize.
  */
-void list_splice_front(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size);
+#define LIST_INITIALIZER { NULL, NULL, 0 }
 
 /**
- * Transfers the @ref ListNode's from @ref list2 in the range [@ref from, @ref to] to the back of @ref list1.
- * This effectively inserts the @ref ListNode's in the range [@ref from, @ref to] into @ref list1 and removes
- * them from @ref list2, altering the sizes of both @ref List's. This operation does not involve the creation
- * or deletion of any @ref ListNode's. The @ref ListConfig of both @ref List's must be equal. If @ref from and
- * @ref to are both equal to NULL, this function simply returns. @ref list1 is allowed to equal @ref list2.
- *
- * Requirements:
- *      -   @ref list1 != NULL
- *      -   @ref list2 != NULL
- *      -   The @ref ListConfig of both @ref List's must be equal.
- *      -   (@ref from != NULL and @ref to != NULL) or (@ref from == NULL and @ref to == NULL)
- *      -   @ref from and @ref to must be part of @ref list2 (if they are not NULL)
- *      -   @ref range_size correctly represents the size of the range [@ref from, @ref to]
- *
- * Time complexity:
- *      O(1)
- *
- * @param list1                 The @ref List that will become the new owner of the @ref ListNode's in the
- *                              range [@ref from, @ref to].
- * @param list2                 The @ref List that is the original owner of the @ref ListNode's in the range
- *                              [@ref from, @ref to].
- * @param from                  The @ref ListNode that marks the beginning of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param to                    The @ref ListNode that marks the end of the range of @ref ListNode's
- *                              (INCLUSIVE).
- * @param range_size            The size of the range [@ref from, @ref to]. Note that this function is able to
- *                              have such a low time complexity because it does not calculate the size of the
- *                              range itself. It is up to the user to calculate the size of the range. This is
- *                              done because sometimes the size of the range is known without having to
- *                              iterate from the beginning to the end of the range.
+ * Initializing a @ref ListNode before it is used is NOT required. This macro is simply for allowing you to
+ * initialize a struct (containing one or more @ref ListNode's) with an initializer-list conveniently.
  */
-void list_splice_back(List *list1, List *list2, ListNode *from, ListNode *to, size_t range_size);
+#define LIST_NODE_INITIALIZER { LIST_POISON_PREV, LIST_POISON_NEXT }
+
+/**
+ * Obtains the pointer to the struct for this entry.
+ *
+ * @param node_ptr              The pointer to the @ref ListNode in the struct.
+ * @param type                  The type of the struct the @ref ListNode is embedded in.
+ * @param member                The name of the @ref ListNode in the struct.
+ */
+#define list_entry(node_ptr, type, member) \
+    ( \
+        (type*) ((char*)(node_ptr) - offsetof(type, member)) \
+    )
 
 /**
  * Iterates over the @ref List from front to back.
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from the @ref list in the
- *          loop's body.
+ *      -   @ref cursor_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each(temp_name, list_ptr) \
+#define list_for_each(cursor_node_ptr, list_ptr) \
     for ( \
-        ListNode *temp_name = (list_ptr)->head; \
-        temp_name != NULL; \
-        temp_name = temp_name->next \
+        cursor_node_ptr = (list_ptr)->head; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->next \
     )
 
 /**
@@ -507,219 +654,226 @@ void list_splice_back(List *list1, List *list2, ListNode *from, ListNode *to, si
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from the @ref list in the
- *          loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each_reverse(temp_name, list_ptr) \
+#define list_for_each_reverse(cursor_node_ptr, list_ptr) \
     for ( \
-        ListNode *temp_name = (list_ptr)->tail; \
-        temp_name != NULL; \
-        temp_name = temp_name->prev \
+        cursor_node_ptr = (list_ptr)->tail; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->prev \
     )
 
 /**
  * Iterates over the @ref List from front to back, and is safe against reassignment and/or removal of the
- * @ref ListNode @ref temp_name.
+ * @ref cursor_node_ptr.
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each_safe(temp_name, list_ptr) \
+#define list_for_each_safe(cursor_node_ptr, backup_node_ptr, list_ptr) \
     for ( \
-        ListNode *temp_name = (list_ptr)->head, \
-        *cpy_ ## __LINE__ = (list_ptr)->head; \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
+        cursor_node_ptr = (list_ptr)->head, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL \
     )
 
 /**
  * Iterates over the @ref List from back to front, and is safe against reassignment and/or removal of the
- * @ref ListNode @ref temp_name.
+ * @ref cursor_node_ptr.
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
  */
-#define list_for_each_safe_reverse(temp_name, list_ptr) \
+#define list_for_each_safe_reverse(cursor_node_ptr, backup_node_ptr, list_ptr) \
     for ( \
-        ListNode *temp_name = (list_ptr)->tail, \
-        *cpy_ ## __LINE__ = (list_ptr)->tail; \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
+        cursor_node_ptr = (list_ptr)->tail, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL \
     )
 
 /**
- * Continues iterating over the @ref List, continuing AFTER the @ref current_listnode_ptr. If either
- * @ref current_listnode_ptr or the @ref ListNode AFTER it is NULL, the loop's body will not execute.
+ * Continues iterating over the @ref List, continuing AFTER the current position.
  *
  * Requirements:
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from its associated @ref List
- *          in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
- *                              will be the initial value of the @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "next" member will
+ *                              be the initial value of it.
  */
-#define list_for_each_continue(temp_name, current_listnode_ptr) \
+#define list_for_each_after(cursor_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->next : NULL; \
-        temp_name != NULL; \
-        temp_name = temp_name->next \
+        cursor_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->next \
     )
 
 /**
- * Continues iterating in reverse order over the @ref List, continuing AFTER the @ref current_listnode_ptr. If
- * either @ref current_listnode_ptr or the @ref ListNode AFTER it is NULL, the loop's body will not execute.
+ * Continues iterating in reverse order over the @ref List, continuing AFTER the current position.
  *
  * Requirements:
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from its associated @ref List
- *          in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
- *                              will be the initial value of the @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "prev" member will
+ *                              be the initial value of it.
  */
-#define list_for_each_continue_reverse(temp_name, current_listnode_ptr) \
+#define list_for_each_after_reverse(cursor_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
-        temp_name != NULL; \
-        temp_name = temp_name->prev \
+        cursor_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->prev \
     )
 
 /**
- * Continues iterating over the @ref List, continuing AFTER the @ref current_listnode_ptr, and is safe against
- * reassignment and/or removal of the @ref ListNode @ref temp_name. If either @ref current_listnode_ptr or the
- * @ref ListNode AFTER it is NULL, the loop's body will not execute.
+ * Continues iterating over the @ref List, continuing AFTER the current position, and is safe against
+ * reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   none
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "next" member
- *                              will be the initial value of the @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "next" member will
+ *                              be the initial value of it.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  */
-#define list_for_each_safe_continue(temp_name, current_listnode_ptr) \
+#define list_for_each_safe_after(cursor_node_ptr, backup_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->next : NULL, \
-        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->next : NULL; \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
+        cursor_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL \
     )
 
 /**
- * Continues iterating in reverse order over the @ref List, continuing AFTER the @ref current_listnode_ptr,
- * and is safe against reassignment and/or removal of the @ref ListNode @ref temp_name. If either
- * @ref current_listnode_ptr or the @ref ListNode AFTER it is NULL, the loop's body will not execute.
+ * Continues iterating in reverse order over the @ref List, continuing AFTER the current position, and is safe
+ * against reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   none
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be SKIPPED, but whose "prev" member
- *                              will be the initial value of the @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "prev" member will
+ *                              be the initial value of it.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  */
-#define list_for_each_safe_continue_reverse(temp_name, current_listnode_ptr) \
+#define list_for_each_safe_after_reverse(cursor_node_ptr, backup_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->prev : NULL, \
-        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)) != NULL ? \
-            ((ListNode*)(current_listnode_ptr))->prev : NULL; \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
+        cursor_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL \
     )
 
 /**
- * Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the @ref current_listnode_ptr. If
- * @ref current_listnode_ptr is NULL, the loop's body will not execute.
+ * Continues iterating over the @ref List, continuing FROM the current position.
  *
  * Requirements:
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from its associated @ref List
- *          in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
- *                              @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
+ *                              position.
  */
-#define list_for_each_from(temp_name, current_listnode_ptr) \
+#define list_for_each_from(cursor_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)); \
-        temp_name != NULL; \
-        temp_name = temp_name->next \
+        ; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->next \
     )
 
 /**
- * Continues iterating in reverse order over the @ref List, continuing FROM (INCLUSIVE) the
- * @ref current_listnode_ptr. If @ref current_listnode_ptr is NULL, the loop's body will not execute.
+ * Continues iterating in reverse order over the @ref List, continuing FROM the current position.
  *
  * Requirements:
- *      -   The @ref ListNode @ref temp_name is neither reassigned nor removed from its associated @ref List
- *          in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
- *                              @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
+ *                              position.
  */
-#define list_for_each_from_reverse(temp_name, current_listnode_ptr) \
+#define list_for_each_from_reverse(cursor_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)); \
-        temp_name != NULL; \
-        temp_name = temp_name->prev \
+        ; \
+        cursor_node_ptr; \
+        cursor_node_ptr = cursor_node_ptr->prev \
     )
 
 /**
- * Continues iterating over the @ref List, continuing FROM (INCLUSIVE) the @ref current_listnode_ptr, and is
- * safe against reassignment and/or removal of the @ref ListNode @ref temp_name. If @ref current_listnode_ptr
- * is NULL, the loop's body will not execute.
+ * Continues iterating over the @ref List, continuing FROM the current position, and is safe against
+ * reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   none
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
- *                              @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
+ *                              position.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  */
-#define list_for_each_safe_from(temp_name, current_listnode_ptr) \
+#define list_for_each_safe_from(cursor_node_ptr, backup_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
-        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)); \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->next, cpy_ ## __LINE__ = temp_name \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->next : NULL \
     )
 
 /**
- * Continues iterating in reverse order over the @ref List, continuing FROM (INCLUSIVE) the
- * @ref current_listnode_ptr, and is safe against reassignment and/or removal of the @ref ListNode
- * @ref temp_name. If @ref current_listnode_ptr is NULL, the loop's body will not execute.
+ * Continues iterating in reverse order over the @ref List, continuing FROM the current position, and is safe
+ * against reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   none
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
- * @param temp_name             The temporary variable name used in the loop's scope.
- * @param current_listnode_ptr  The pointer to a @ref ListNode that will be the initial value of the
- *                              @ref ListNode @ref temp_name.
+ * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
+ *                              position.
+ * @param backup_node_ptr       Another @ref ListNode to use as temporary storage.
  */
-#define list_for_each_safe_from_reverse(temp_name, current_listnode_ptr) \
+#define list_for_each_safe_from_reverse(cursor_node_ptr, backup_node_ptr) \
     for ( \
-        ListNode *temp_name = ((ListNode*)(current_listnode_ptr)), \
-        *cpy_ ## __LINE__ = ((ListNode*)(current_listnode_ptr)); \
-        temp_name != NULL; \
-        temp_name = cpy_ ## __LINE__->prev, cpy_ ## __LINE__ = temp_name \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL; \
+        \
+        cursor_node_ptr; \
+        \
+        cursor_node_ptr = backup_node_ptr, \
+        backup_node_ptr = cursor_node_ptr ? cursor_node_ptr->prev : NULL \
     )
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus
+#endif /* __cplusplus */
 
-#endif // CDSAA_LIST_H
+#endif /* LIST_H */

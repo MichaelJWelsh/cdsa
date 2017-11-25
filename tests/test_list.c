@@ -18,2730 +18,851 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdarg.h>
 #include <assert.h>
 
-#include "alloc.h"
+#include "testing_framework.h"
 
-// Test header guard.
+/* Test header guard. */
 #include "../src/list.h"
 #include "../src/list.h"
 
-/*
- * Find a bug. I dare you.
- */
+/* ========================================================================================================
+ *
+ *                                             TESTING UTILITIES
+ *
+ * ======================================================================================================== */
 
-int static_var1[] = {1}, static_var2[] = {2}, static_var3[] = {3}, static_var4[] = {4}, static_var5[] = {5}, static_var6[] = {6};
+typedef struct TestStruct {
+    int val;
+    ListNode node;
+} TestStruct;
 
-const ListConfig test_bad_malloc_config = {test_bad_malloc, test_free, NULL};
-const ListConfig test_config_no_ownership = {test_malloc, test_free, NULL};
-const ListConfig test_config_with_ownership = {test_malloc, test_free, test_free};
+TestStruct var1, var2, var3, var4, var5;
+List list, other_list;
 
-void test_list_create_and_destroy(void) {
-    // Test bad allocation.
-    List *list = list_create(test_bad_malloc_config);
-    assert(list == NULL);
-    list_destroy(list);
-    list = NULL;
+#define ASSERT_LIST(list, head_ptr, tail_ptr, size_of_list) \
+    do { \
+        assert(list.head == (ListNode*) (head_ptr)); \
+        assert(list.tail == (ListNode*) (tail_ptr)); \
+        assert(list.size == size_of_list); \
+    } while (0)
 
-    // Test allocation/deallocation on an empty list WITH ownership.
-    list = list_create(test_config_with_ownership);
-    assert(list != NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->config.list_malloc == test_malloc);
-    assert(list->config.list_free == test_free);
-    assert(list->config.data_free == test_free);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
+#define ASSERT_NODE(node, prev_ptr, next_ptr) \
+    do { \
+        assert(node.prev == (ListNode*) (prev_ptr)); \
+        assert(node.next == (ListNode*) (next_ptr)); \
+    } while (0)
 
-    // Test allocation/deallocation on a non-empty list WITH ownership. Assumes list_push_back works as
-    // intended for the sake of adding items to the list.
-    list = list_create(test_config_with_ownership);
-    int *dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    int *dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    int *dynamic_var3 = (int*) test_malloc(sizeof(int));
-    *dynamic_var3 = 3;
-    int *dynamic_var4 = (int*) test_malloc(sizeof(int));
-    *dynamic_var4 = 4;
-    list_push_back(list, dynamic_var1);
-    list_push_back(list, dynamic_var2);
-    list_push_back(list, dynamic_var3);
-    list_push_back(list, dynamic_var4);
-    list_destroy(list);
-    list = NULL;
+#define ASSERT_FOR_EACH(node_ptr, index) \
+    do { \
+        switch (index) { \
+            case 0: \
+                assert(node_ptr == &var1.node); \
+                break; \
+            case 1: \
+                assert(node_ptr == &var2.node); \
+                break; \
+            case 2: \
+                assert(node_ptr == &var3.node); \
+                break; \
+            case 3: \
+                assert(node_ptr == &var4.node); \
+                break; \
+            case 4: \
+                assert(node_ptr == &var5.node); \
+                break; \
+            default: \
+                assert(0); \
+        } \
+    } while (0)
 
-    // Test allocation/deallocation on an empty list WITHOUT ownership.
-    list = list_create(test_config_no_ownership);
-    assert(list != NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->config.list_malloc == test_malloc);
-    assert(list->config.list_free == test_free);
-    assert(list->config.data_free == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
+static void reset_globals() {
+    list_initialize(&list);
+    list_initialize(&other_list);
 
-    // Test allocation/deallocation on a non-empty list WITHOUT ownership. Assumes list_push_back works as
-    // intended for the sake of adding items to the list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_destroy(list);
-    list = NULL;
+    var1.val = 1;
+    var1.node.prev = LIST_POISON_PREV;
+    var1.node.next = LIST_POISON_NEXT;
+
+    var2.val = 2;
+    var2.node.prev = LIST_POISON_PREV;
+    var2.node.next = LIST_POISON_NEXT;
+
+    var3.val = 3;
+    var3.node.prev = LIST_POISON_PREV;
+    var3.node.next = LIST_POISON_NEXT;
+
+    var4.val = 4;
+    var4.node.prev = LIST_POISON_PREV;
+    var4.node.next = LIST_POISON_NEXT;
+
+    var5.val = 5;
+    var5.node.prev = LIST_POISON_PREV;
+    var5.node.next = LIST_POISON_NEXT;
+}
+
+/* ========================================================================================================
+ *
+ *                                             TESTING FUNCTIONS.
+ *
+ * ======================================================================================================== */
+
+void test_list_initialize(void) {
+    /* Test out initializer-list macros */
+    List list_init_with_macro = LIST_INITIALIZER;
+    ListNode node_init_with_macro = LIST_NODE_INITIALIZER;
+    ASSERT_LIST(list_init_with_macro, NULL, NULL, 0);
+    ASSERT_NODE(node_init_with_macro, LIST_POISON_PREV, LIST_POISON_NEXT);
+
+    /* Bad input */
+    assert(list_initialize(NULL) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    assert(list_initialize(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, NULL, NULL, 0);
+}
+
+void test_list_head(void) {
+    /* NULL input */
+    assert(list_head(NULL) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    assert(list_head(&list) == &var1.node);
+}
+
+void test_list_tail(void) {
+    /* NULL input */
+    assert(list_tail(NULL) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    assert(list_tail(&list) == &var1.node);
+}
+
+void test_list_size(void) {
+    /* NULL input */
+    assert(list_size(NULL) == 0);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    assert(list_size(&list) == 1);
+}
+
+void test_list_prev(void) {
+    /* NULL input */
+    assert(list_prev(NULL) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_prev(&var1.node) == NULL);
+    assert(list_prev(&var2.node) == &var1.node);
+}
+
+void test_list_next(void) {
+    /* NULL input */
+    assert(list_next(NULL) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_next(&var1.node) == &var2.node);
+    assert(list_next(&var2.node) == NULL);
+}
+
+void test_list_empty(void) {
+    /* NULL input */
+    assert(list_empty(NULL) == 1);
+
+    /* Valid input */
+    assert(list_empty(&list) == 1);
+    list_insert_back(&list, &var1.node);
+    assert(list_empty(&list) == 0);
 }
 
 void test_list_index_of(void) {
-    // Assume list_push_back works as intended.
-    List *list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    assert(list_index_of(list, list->head) == 0);
-    assert(list_index_of(list, list->head->next) == 1);
-    assert(list_index_of(list, list->tail->prev) == 2);
-    assert(list_index_of(list, list->tail) == 3);
-    list_destroy(list);
-    list = NULL;
+    size_t index;
+
+    /* Bad input */
+    assert(list_index_of(NULL, &var1.node, &index) == LIST_FUNC_STAT_ERROR);
+    assert(list_index_of(&list, NULL, &index) == LIST_FUNC_STAT_ERROR);
+    assert(list_index_of(&list, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
+    assert(list_index_of(&list, &var1.node, &index) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    assert(list_index_of(&list, &var1.node, &index) == LIST_FUNC_STAT_OK && index == 0);
+    assert(list_index_of(&list, &var2.node, &index) == LIST_FUNC_STAT_OK && index == 1);
+    assert(list_index_of(&list, &var3.node, &index) == LIST_FUNC_STAT_OK && index == 2);
+    assert(list_index_of(&list, &var4.node, &index) == LIST_FUNC_STAT_OK && index == 3);
+    assert(list_index_of(&list, &var5.node, &index) == LIST_FUNC_STAT_OK && index == 4);
 }
 
 void test_list_at(void) {
-    // Assume list_push_back works as intended.
-    List *list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    assert(list_at(list, 0) == list->head);
-    assert(list_at(list, 1) == list->head->next);
-    assert(list_at(list, 2) == list->tail->prev);
-    assert(list_at(list, 3) == list->tail);
-    list_destroy(list);
-    list = NULL;
+    ListNode *at;
+
+    /* Bad input */
+    list_insert_back(&list, &var1.node);
+    assert(list_at(NULL, 0, &at) == LIST_FUNC_STAT_ERROR);
+    assert(list_at(&list, 1, &at) == LIST_FUNC_STAT_ERROR);
+    assert(list_at(&list, 0, NULL) == LIST_FUNC_STAT_ERROR);
+    reset_globals();
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    assert(list_at(&list, 0, &at) == LIST_FUNC_STAT_OK && at == &var1.node);
+    assert(list_at(&list, 1, &at) == LIST_FUNC_STAT_OK && at == &var2.node);
+    assert(list_at(&list, 2, &at) == LIST_FUNC_STAT_OK && at == &var3.node);
+    assert(list_at(&list, 3, &at) == LIST_FUNC_STAT_OK && at == &var4.node);
+    assert(list_at(&list, 4, &at) == LIST_FUNC_STAT_OK && at == &var5.node);
 }
 
 void test_list_insert_left(void) {
-    // Test insertion with bad malloc. Assume list_push_back works as intended.
-    List *list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_back(list, static_var1);
-    list->config.list_malloc = test_bad_malloc;
-    assert(list_insert_left(list, static_var2, node) == NULL);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
+    /* Bad input */
+    assert(list_insert_left(NULL, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
+    assert(list_insert_left(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test insertion at head of list. Assume list_push_back works as intended.
-    list = list_create(test_config_no_ownership);
-    ListNode *tail = list_push_back(list, static_var2);
-    ListNode *head = list_insert_left(list, static_var1, tail);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    tail = NULL;
-    head = NULL;
-
-    // Test insertion elsewhere. Assume list_push_back works as intended.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var3);
-    ListNode *middle = list_insert_left(list, static_var2, tail);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 3);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-    middle = NULL;
+    /* Valid input */
+    assert(list_insert_left(&list, &var5.node, list.tail) == LIST_FUNC_STAT_OK);
+    assert(list_insert_left(&list, &var1.node, list.tail) == LIST_FUNC_STAT_OK);
+    assert(list_insert_left(&list, &var2.node, list.tail) == LIST_FUNC_STAT_OK);
+    assert(list_insert_left(&list, &var3.node, list.tail) == LIST_FUNC_STAT_OK);
+    assert(list_insert_left(&list, &var4.node, list.tail) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
 }
 
 void test_list_insert_right(void) {
-    // Test insertion with bad malloc. Assume list_push_back works as intended.
-    List *list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_back(list, static_var1);
-    list->config.list_malloc = test_bad_malloc;
-    assert(list_insert_right(list, static_var2, node) == NULL);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
+    /* Bad input */
+    assert(list_insert_right(NULL, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
+    assert(list_insert_right(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test insertion at tail of list. Assume list_push_back works as intended.
-    list = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list, static_var1);
-    ListNode *tail = list_insert_right(list, static_var2, head);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test insertion elsewhere. Assume list_push_back works as intended.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var3);
-    ListNode *middle = list_insert_right(list, static_var2, head);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 3);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-    middle = NULL;
+    /* Valid input */
+    assert(list_insert_right(&list, &var1.node, list.head) == LIST_FUNC_STAT_OK);
+    assert(list_insert_right(&list, &var5.node, list.head) == LIST_FUNC_STAT_OK);
+    assert(list_insert_right(&list, &var4.node, list.head) == LIST_FUNC_STAT_OK);
+    assert(list_insert_right(&list, &var3.node, list.head) == LIST_FUNC_STAT_OK);
+    assert(list_insert_right(&list, &var2.node, list.head) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
 }
 
-void test_list_push_front(void) {
-    // Test insertion with bad malloc.
-    List *list = list_create(test_config_no_ownership);
-    list->config.list_malloc = test_bad_malloc;
-    assert(list_push_front(list, static_var1) == NULL);
-    list_destroy(list);
-    list = NULL;
+void test_list_insert_front(void) {
+    /* Bad input */
+    assert(list_insert_front(NULL, &var1.node) == LIST_FUNC_STAT_ERROR);
+    assert(list_insert_front(&list, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test insertion on empty list.
-    list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_front(list, static_var1);
-    assert(list->head == node);
-    assert(list->tail == node);
-    assert(list->size == 1);
-    assert(node->data == static_var1);
-    assert(node->prev == NULL);
-    assert(node->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
-
-    // Test insertion on non-empty list.
-    list = list_create(test_config_no_ownership);
-    ListNode *tail = list_push_front(list, static_var2);
-    ListNode *head = list_push_front(list, static_var1);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    tail = NULL;
-    head = NULL;
+    /* Valid input */
+    assert(list_insert_front(&list, &var5.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_front(&list, &var4.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_front(&list, &var3.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_front(&list, &var2.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_front(&list, &var1.node) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
 }
 
-void test_list_push_back(void) {
-    // Test insertion with bad malloc.
-    List *list = list_create(test_config_no_ownership);
-    list->config.list_malloc = test_bad_malloc;
-    assert(list_push_back(list, static_var1) == NULL);
-    list_destroy(list);
-    list = NULL;
+void test_list_insert_back(void) {
+    /* Bad input */
+    assert(list_insert_back(NULL, &var1.node) == LIST_FUNC_STAT_ERROR);
+    assert(list_insert_back(&list, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test insertion on empty list.
-    list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_back(list, static_var1);
-    assert(list->head == node);
-    assert(list->tail == node);
-    assert(list->size == 1);
-    assert(node->data == static_var1);
-    assert(node->prev == NULL);
-    assert(node->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
-
-    // Test insertion on non-empty list.
-    list = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list, static_var1);
-    ListNode *tail = list_push_back(list, static_var2);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-}
-
-void test_list_clear(void) {
-    // Test on empty list without ownership.
-    List *list = list_create(test_config_no_ownership);
-    list_clear(list);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list without ownership.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_clear(list);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on empty list with ownership.
-    list = list_create(test_config_with_ownership);
-    list_clear(list);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test on non-empty list with ownership.
-    list = list_create(test_config_with_ownership);
-    int *dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    int *dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    int *dynamic_var3 = (int*) test_malloc(sizeof(int));
-    *dynamic_var3 = 3;
-    int *dynamic_var4 = (int*) test_malloc(sizeof(int));
-    *dynamic_var4 = 4;
-    list_push_back(list, dynamic_var1);
-    list_push_back(list, dynamic_var2);
-    list_push_back(list, dynamic_var3);
-    list_push_back(list, dynamic_var4);
-    list_clear(list);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    dynamic_var3 = NULL;
-    dynamic_var4 = NULL;
-}
-
-void test_list_remove(void) {
-    // Test deletion with NULL as input.
-    List *list = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list, static_var1);
-    ListNode *tail = list_push_back(list, static_var2);
-    assert(list_remove(list, NULL) == NULL);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test deletion on single-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_back(list, static_var1);
-    assert(list_remove(list, node) == static_var1);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
-
-    // Test deletion on single-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    int *dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    node = list_push_back(list, dynamic_var1);
-    assert(list_remove(list, node) == NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    node = NULL;
-
-    // Test deletion on head of multi-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var2);
-    assert(list_remove(list, head) == static_var1);
-    assert(list->head == tail);
-    assert(list->tail == tail);
-    assert(list->size == 1);
-    assert(tail->data == static_var2);
-    assert(tail->prev == NULL);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test deletion on head of multi-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    int *dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    head = list_push_back(list, dynamic_var1);
-    tail = list_push_back(list, dynamic_var2);
-    assert(list_remove(list, head) == NULL);
-    assert(list->head == tail);
-    assert(list->tail == tail);
-    assert(list->size == 1);
-    assert(tail->data == dynamic_var2);
-    assert(tail->prev == NULL);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test deletion on tail of multi-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var2);
-    assert(list_remove(list, tail) == static_var2);
-    assert(list->head == head);
-    assert(list->tail == head);
-    assert(list->size == 1);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test deletion on tail of multi-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    head = list_push_back(list, dynamic_var1);
-    tail = list_push_back(list, dynamic_var2);
-    assert(list_remove(list, tail) == NULL);
-    assert(list->head == head);
-    assert(list->tail == head);
-    assert(list->size == 1);
-    assert(head->data == dynamic_var1);
-    assert(head->prev == NULL);
-    assert(head->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    head = NULL;
-    tail = NULL;
-
-    // Test deletion on middle of multi-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    ListNode *middle = list_push_back(list, static_var2);
-    tail = list_push_back(list, static_var3);
-    assert(list_remove(list, middle) == static_var2);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test deletion on middle of multi-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    int *dynamic_var3 = (int*) test_malloc(sizeof(int));
-    *dynamic_var3 = 3;
-    head = list_push_back(list, dynamic_var1);
-    middle = list_push_back(list, dynamic_var2);
-    tail = list_push_back(list, dynamic_var3);
-    assert(list_remove(list, middle) == NULL);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == dynamic_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == dynamic_var3);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    dynamic_var3 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-}
-
-void test_list_pop_front(void) {
-    // Test deletion on empty list.
-    List *list = list_create(test_config_no_ownership);
-    assert(list_pop_front(list) == NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test deletion on single-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    assert(list_pop_front(list) == static_var1);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test deletion on single-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    int *dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    list_push_back(list, dynamic_var1);
-    assert(list_pop_front(list) == NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-
-    // Test deletion on multi-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    ListNode *tail = list_push_back(list, static_var2);
-    assert(list_pop_front(list) == static_var1);
-    assert(list->head == tail);
-    assert(list->tail == tail);
-    assert(list->size == 1);
-    assert(tail->data == static_var2);
-    assert(tail->prev == NULL);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    tail = NULL;
-
-    // Test deletion on multi-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    int *dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    list_push_back(list, dynamic_var1);
-    tail = list_push_back(list, dynamic_var2);
-    assert(list_pop_front(list) == NULL);
-    assert(list->head == tail);
-    assert(list->tail == tail);
-    assert(list->size == 1);
-    assert(tail->data == dynamic_var2);
-    assert(tail->prev == NULL);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    tail = NULL;
-}
-
-void test_list_pop_back(void) {
-    // Test deletion on empty list.
-    List *list = list_create(test_config_no_ownership);
-    assert(list_pop_front(list) == NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test deletion on single-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    assert(list_pop_back(list) == static_var1);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test deletion on single-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    int *dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    list_push_back(list, dynamic_var1);
-    assert(list_pop_back(list) == NULL);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-
-    // Test deletion on multi-node list without ownership.
-    list = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    assert(list_pop_back(list) == static_var2);
-    assert(list->head == head);
-    assert(list->tail == head);
-    assert(list->size == 1);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-
-    // Test deletion on multi-node list with ownership.
-    list = list_create(test_config_with_ownership);
-    dynamic_var1 = (int*) test_malloc(sizeof(int));
-    *dynamic_var1 = 1;
-    int *dynamic_var2 = (int*) test_malloc(sizeof(int));
-    *dynamic_var2 = 2;
-    head = list_push_back(list, dynamic_var1);
-    list_push_back(list, dynamic_var2);
-    assert(list_pop_back(list) == NULL);
-    assert(list->head == head);
-    assert(list->tail == head);
-    assert(list->size == 1);
-    assert(head->data == dynamic_var1);
-    assert(head->prev == NULL);
-    assert(head->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    dynamic_var1 = NULL;
-    dynamic_var2 = NULL;
-    head = NULL;
-}
-
-// Sorts list in ascending order.
-static int test_list_sort_compare(const void *d1, const void* d2) {
-    return *(int*) d1 - *(int*) d2;
-}
-
-void test_list_sort(void) {
-    // Test sort on empty list.
-    List *list = list_create(test_config_no_ownership);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-
-    // Test sort on single-node list.
-    list = list_create(test_config_no_ownership);
-    ListNode *node = list_push_back(list, static_var1);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == node);
-    assert(list->tail == node);
-    assert(list->size == 1);
-    assert(node->data == static_var1);
-    assert(node->prev == NULL);
-    assert(node->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    node = NULL;
-
-    // Test sort on double-node list.
-    list = list_create(test_config_no_ownership);
-    ListNode *tail = list_push_back(list, static_var2);
-    ListNode *head = list_push_back(list, static_var1);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 2);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == tail);
-    assert(tail->data == static_var2);
-    assert(tail->prev == head);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    tail = NULL;
-    head = NULL;
-
-    // Test sort on even-sized multi-node list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var4);
-    ListNode *third = list_push_back(list, static_var3);
-    ListNode *second = list_push_back(list, static_var2);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 4);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == tail);
-    assert(tail->data == static_var4);
-    assert(tail->prev == third);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-    third = NULL;
-    second = NULL;
-
-    // Test sort on odd-sized multi-node list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var5);
-    third = list_push_back(list, static_var3);
-    second = list_push_back(list, static_var2);
-    ListNode *fourth = list_push_back(list, static_var4);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    tail = NULL;
-    third = NULL;
-    second = NULL;
-    fourth = NULL;
-
-    // Test sort on already sorted list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-
-    // Test sort stability.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var1);
-    third = list_push_back(list, static_var1);
-    fourth = list_push_back(list, static_var1);
-    tail = list_push_back(list, static_var1);
-    list_sort(list, test_list_sort_compare);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var1);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var1);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var1);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var1);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
+    /* Valid input */
+    assert(list_insert_back(&list, &var1.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_back(&list, &var2.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_back(&list, &var3.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_back(&list, &var4.node) == LIST_FUNC_STAT_OK);
+    assert(list_insert_back(&list, &var5.node) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
 }
 
 void test_list_splice_left(void) {
-    // Test splicing non-empty list at front with empty list.
-    List *list1 = list_create(test_config_no_ownership);
-    List *list2 = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list1, static_var1);
-    ListNode *middle = list_push_back(list1, static_var2);
-    ListNode *tail = list_push_back(list1, static_var3);
-    list_splice_left(list1, head, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
+    /* Bad input */
+    assert(list_splice_left(NULL, &other_list, NULL) == LIST_FUNC_STAT_ERROR);
+    assert(list_splice_left(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test splicing non-empty list at middle with empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    head = list_push_back(list1, static_var1);
-    middle = list_push_back(list1, static_var2);
-    tail = list_push_back(list1, static_var3);
-    list_splice_left(list1, middle, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing non-empty list at front with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *first = list_push_back(list2, static_var1);
-    ListNode *second = list_push_back(list2, static_var2);
-    ListNode *third = list_push_back(list2, static_var3);
-    ListNode *fourth = list_push_back(list1, static_var4);
-    ListNode *fifth = list_push_back(list1, static_var5);
-    ListNode *sixth = list_push_back(list1, static_var6);
-    list_splice_left(list1, fourth, list2, first, third, 3);
-    assert(list1->head == first);
-    assert(list1->tail == sixth);
-    assert(list1->size == 6);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at middle with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_left(list1, fifth, list2, first, third, 3);
-    assert(list1->head == fourth);
-    assert(list1->tail == sixth);
-    assert(list1->size == 6);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(first->data == static_var1);
-    assert(first->prev == fourth);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fifth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == first);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == third);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at front with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_left(list1, fourth, list2, first, second, 2);
-    assert(list1->head == first);
-    assert(list1->tail == sixth);
-    assert(list1->size == 5);
-    assert(list2->head == third);
-    assert(list2->tail == third);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == fourth);
-    assert(third->data == static_var3);
-    assert(third->prev == NULL);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == second);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at middle with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_left(list1, fifth, list2, second, third, 2);
-    assert(list1->head == fourth);
-    assert(list1->tail == sixth);
-    assert(list1->size == 5);
-    assert(list2->head == first);
-    assert(list2->tail == first);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == NULL);
-    assert(second->data == static_var2);
-    assert(second->prev == fourth);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fifth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == second);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == third);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at front with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_left(list1, first, list1, second, third, 2);
-    assert(list1->head == second);
-    assert(list1->tail == first);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == third);
-    assert(first->next == NULL);
-    assert(second->data == static_var2);
-    assert(second->prev == NULL);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == first);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list at middle with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_left(list1, second, list1, third, third, 1);
-    assert(list1->head == first);
-    assert(list1->tail == second);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == third);
-    assert(second->data == static_var2);
-    assert(second->prev == third);
-    assert(second->next == NULL);
-    assert(third->data == static_var3);
-    assert(third->prev == first);
-    assert(third->next == second);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
+    /* Valid input */
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    list_insert_back(&other_list, &var1.node);
+    list_insert_back(&other_list, &var2.node);
+    list_insert_back(&other_list, &var3.node);
+    assert(list_splice_left(&list, &other_list, list.head) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
+    ASSERT_LIST(other_list, NULL, NULL, 0);
 }
 
 void test_list_splice_right(void) {
-    // Test splicing non-empty list at middle with empty list.
-    List *list1 = list_create(test_config_no_ownership);
-    List *list2 = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list1, static_var1);
-    ListNode *middle = list_push_back(list1, static_var2);
-    ListNode *tail = list_push_back(list1, static_var3);
-    list_splice_right(list1, head, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
+    /* Bad input */
+    assert(list_splice_right(NULL, &other_list, NULL) == LIST_FUNC_STAT_ERROR);
+    assert(list_splice_right(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test splicing non-empty list at back with empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    head = list_push_back(list1, static_var1);
-    middle = list_push_back(list1, static_var2);
-    tail = list_push_back(list1, static_var3);
-    list_splice_right(list1, tail, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing non-empty list at middle with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    head = list_push_back(list1, static_var1);
-    middle = list_push_back(list1, static_var2);
-    tail = list_push_back(list1, static_var3);
-    list_splice_right(list1, tail, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing non-empty list at back with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *first = list_push_back(list2, static_var1);
-    ListNode *second = list_push_back(list2, static_var2);
-    ListNode *third = list_push_back(list2, static_var3);
-    ListNode *fourth = list_push_back(list1, static_var4);
-    ListNode *fifth = list_push_back(list1, static_var5);
-    ListNode *sixth = list_push_back(list1, static_var6);
-    list_splice_right(list1, sixth, list2, first, third, 3);
-    assert(list1->head == fourth);
-    assert(list1->tail == third);
-    assert(list1->size == 6);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(first->data == static_var1);
-    assert(first->prev == sixth);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == first);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at middle with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_right(list1, fifth, list2, first, second, 2);
-    assert(list1->head == fourth);
-    assert(list1->tail == sixth);
-    assert(list1->size == 5);
-    assert(list2->head == third);
-    assert(list2->tail == third);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == fifth);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == sixth);
-    assert(third->data == static_var3);
-    assert(third->prev == NULL);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == first);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == second);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at back with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_right(list1, sixth, list2, second, third, 2);
-    assert(list1->head == fourth);
-    assert(list1->tail == third);
-    assert(list1->size == 5);
-    assert(list2->head == first);
-    assert(list2->tail == first);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == NULL);
-    assert(second->data == static_var2);
-    assert(second->prev == sixth);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == second);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list at middle with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_right(list1, first, list1, third, third, 1);
-    assert(list1->head == first);
-    assert(list1->tail == second);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == third);
-    assert(second->data == static_var2);
-    assert(second->prev == third);
-    assert(second->next == NULL);
-    assert(third->data == static_var3);
-    assert(third->prev == first);
-    assert(third->next == second);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list at back with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_right(list1, third, list1, first, second, 2);
-    assert(list1->head == third);
-    assert(list1->tail == second);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == third);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == NULL);
-    assert(third->data == static_var3);
-    assert(third->prev == NULL);
-    assert(third->next == first);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&other_list, &var3.node);
+    list_insert_back(&other_list, &var4.node);
+    list_insert_back(&other_list, &var5.node);
+    assert(list_splice_right(&list, &other_list, list.tail) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
+    ASSERT_LIST(other_list, NULL, NULL, 0);
 }
 
 void test_list_splice_front(void) {
-    // Test splicing empty list with empty list.
-    List *list1 = list_create(test_config_no_ownership);
-    List *list2 = list_create(test_config_no_ownership);
-    list_splice_front(list1, list2, NULL, NULL, 0);
-    assert(list1->head == NULL);
-    assert(list1->tail == NULL);
-    assert(list1->size == 0);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
+    /* Bad input */
+    assert(list_splice_front(NULL, &other_list) == LIST_FUNC_STAT_ERROR);
+    assert(list_splice_front(&list, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test splicing empty list with empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    list_splice_front(list1, list1, NULL, NULL, 0);
-    assert(list1->head == NULL);
-    assert(list1->tail == NULL);
-    assert(list1->size == 0);
-    list_destroy(list1);
-    list1 = NULL;
-
-    // Test splicing empty list with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list2, static_var1);
-    ListNode *middle = list_push_back(list2, static_var2);
-    ListNode *tail = list_push_back(list2, static_var3);
-    list_splice_front(list1, list2, head, tail, 3);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing empty list with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *first = list_push_back(list2, static_var1);
-    ListNode *second = list_push_back(list2, static_var2);
-    ListNode *third = list_push_back(list2, static_var3);
-    list_splice_front(list1, list2, second, third, 2);
-    assert(list1->head == second);
-    assert(list1->tail == third);
-    assert(list1->size == 2);
-    assert(list2->head == first);
-    assert(list2->tail == first);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == NULL);
-    assert(second->data == static_var2);
-    assert(second->prev == NULL);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list with empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    head = list_push_back(list1, static_var1);
-    middle = list_push_back(list1, static_var2);
-    tail = list_push_back(list1, static_var3);
-    list_splice_front(list1, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing non-empty list with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    ListNode *fourth = list_push_back(list1, static_var4);
-    ListNode *fifth = list_push_back(list1, static_var5);
-    ListNode *sixth = list_push_back(list1, static_var6);
-    list_splice_front(list1, list2, first, third, 3);
-    assert(list1->head == first);
-    assert(list1->tail == sixth);
-    assert(list1->size == 6);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_front(list1, list2, first, second, 2);
-    assert(list1->head == first);
-    assert(list1->tail == sixth);
-    assert(list1->size == 5);
-    assert(list2->head == third);
-    assert(list2->tail == third);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == fourth);
-    assert(third->data == static_var3);
-    assert(third->prev == NULL);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == second);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list with entire non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_front(list1, list1, first, third, 3);
-    assert(list1->head == first);
-    assert(list1->tail == third);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_front(list1, list1, second, second, 1);
-    assert(list1->head == second);
-    assert(list1->tail == third);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == second);
-    assert(first->next == third);
-    assert(second->data == static_var2);
-    assert(second->prev == NULL);
-    assert(second->next == first);
-    assert(third->data == static_var3);
-    assert(third->prev == first);
-    assert(third->next == NULL);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
+    /* Valid input */
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    list_insert_back(&other_list, &var1.node);
+    list_insert_back(&other_list, &var2.node);
+    list_insert_back(&other_list, &var3.node);
+    assert(list_splice_front(&list, &other_list) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
+    ASSERT_LIST(other_list, NULL, NULL, 0);
 }
 
 void test_list_splice_back(void) {
-    // Test splicing empty list with empty list.
-    List *list1 = list_create(test_config_no_ownership);
-    List *list2 = list_create(test_config_no_ownership);
-    list_splice_back(list1, list2, NULL, NULL, 0);
-    assert(list1->head == NULL);
-    assert(list1->tail == NULL);
-    assert(list1->size == 0);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
+    /* Bad input */
+    assert(list_splice_back(NULL, &other_list) == LIST_FUNC_STAT_ERROR);
+    assert(list_splice_back(&list, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test splicing empty list with empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    list_splice_back(list1, list1, NULL, NULL, 0);
-    assert(list1->head == NULL);
-    assert(list1->tail == NULL);
-    assert(list1->size == 0);
-    list_destroy(list1);
-    list1 = NULL;
-
-    // Test splicing empty list with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list2, static_var1);
-    ListNode *middle = list_push_back(list2, static_var2);
-    ListNode *tail = list_push_back(list2, static_var3);
-    list_splice_back(list1, list2, head, tail, 3);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing empty list with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    ListNode *first = list_push_back(list2, static_var1);
-    ListNode *second = list_push_back(list2, static_var2);
-    ListNode *third = list_push_back(list2, static_var3);
-    list_splice_back(list1, list2, second, third, 2);
-    assert(list1->head == second);
-    assert(list1->tail == third);
-    assert(list1->size == 2);
-    assert(list2->head == first);
-    assert(list2->tail == first);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == NULL);
-    assert(second->data == static_var2);
-    assert(second->prev == NULL);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list with empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    head = list_push_back(list1, static_var1);
-    middle = list_push_back(list1, static_var2);
-    tail = list_push_back(list1, static_var3);
-    list_splice_back(list1, list2, NULL, NULL, 0);
-    assert(list1->head == head);
-    assert(list1->tail == tail);
-    assert(list1->size == 3);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == middle);
-    assert(middle->data == static_var2);
-    assert(middle->prev == head);
-    assert(middle->next == tail);
-    assert(tail->data == static_var3);
-    assert(tail->prev == middle);
-    assert(tail->next == NULL);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    head = NULL;
-    middle = NULL;
-    tail = NULL;
-
-    // Test splicing non-empty list with entire non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    ListNode *fourth = list_push_back(list1, static_var4);
-    ListNode *fifth = list_push_back(list1, static_var5);
-    ListNode *sixth = list_push_back(list1, static_var6);
-    list_splice_back(list1, list2, first, third, 3);
-    assert(list1->head == fourth);
-    assert(list1->tail == third);
-    assert(list1->size == 6);
-    assert(list2->head == NULL);
-    assert(list2->tail == NULL);
-    assert(list2->size == 0);
-    assert(first->data == static_var1);
-    assert(first->prev == sixth);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == first);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list with part of non-empty list.
-    list1 = list_create(test_config_no_ownership);
-    list2 = list_create(test_config_no_ownership);
-    first = list_push_back(list2, static_var1);
-    second = list_push_back(list2, static_var2);
-    third = list_push_back(list2, static_var3);
-    fourth = list_push_back(list1, static_var4);
-    fifth = list_push_back(list1, static_var5);
-    sixth = list_push_back(list1, static_var6);
-    list_splice_back(list1, list2, first, second, 2);
-    assert(list1->head == fourth);
-    assert(list1->tail == second);
-    assert(list1->size == 5);
-    assert(list2->head == third);
-    assert(list2->tail == third);
-    assert(list2->size == 1);
-    assert(first->data == static_var1);
-    assert(first->prev == sixth);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == NULL);
-    assert(third->data == static_var3);
-    assert(third->prev == NULL);
-    assert(third->next == NULL);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == NULL);
-    assert(fourth->next == fifth);
-    assert(fifth->data == static_var5);
-    assert(fifth->prev == fourth);
-    assert(fifth->next == sixth);
-    assert(sixth->data == static_var6);
-    assert(sixth->prev == fifth);
-    assert(sixth->next == first);
-    list_destroy(list1);
-    list_destroy(list2);
-    list1 = NULL;
-    list2 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    fifth = NULL;
-    sixth = NULL;
-
-    // Test splicing non-empty list with entire non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_back(list1, list1, first, third, 3);
-    assert(list1->head == first);
-    assert(list1->tail == third);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == first);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == NULL);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
-
-    // Test splicing non-empty list with part of non-empty list, where both lists are the same list.
-    list1 = list_create(test_config_no_ownership);
-    first = list_push_back(list1, static_var1);
-    second = list_push_back(list1, static_var2);
-    third = list_push_back(list1, static_var3);
-    list_splice_back(list1, list1, second, second, 1);
-    assert(list1->head == first);
-    assert(list1->tail == second);
-    assert(list1->size == 3);
-    assert(first->data == static_var1);
-    assert(first->prev == NULL);
-    assert(first->next == third);
-    assert(second->data == static_var2);
-    assert(second->prev == third);
-    assert(second->next == NULL);
-    assert(third->data == static_var3);
-    assert(third->prev == first);
-    assert(third->next == second);
-    list_destroy(list1);
-    list1 = NULL;
-    first = NULL;
-    second = NULL;
-    third = NULL;
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&other_list, &var3.node);
+    list_insert_back(&other_list, &var4.node);
+    list_insert_back(&other_list, &var5.node);
+    assert(list_splice_back(&list, &other_list) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
+    ASSERT_LIST(other_list, NULL, NULL, 0);
 }
 
-void test_list_traversal_macros(void) {
-    void *static_var_ptrs[] = {static_var1, static_var2, static_var3, static_var4, static_var5};
+void test_list_remove(void) {
+    /* Bad input */
+    assert(list_remove(NULL, NULL) == LIST_FUNC_STAT_ERROR);
 
-    // Test list_for_each on empty list.
-    List *list = list_create(test_config_no_ownership);
+    /* Valid input */
+    list_insert_back(&list, &var5.node);
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    assert(list_remove(&list, &var5.node) == LIST_FUNC_STAT_OK);
+    assert(list_remove(&list, &var4.node) == LIST_FUNC_STAT_OK);
+    assert(list_remove(&list, &var3.node) == LIST_FUNC_STAT_OK);
+    assert(list_remove(&list, NULL) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var3.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_NODE(var4.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_NODE(var5.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_LIST(list, &var1.node, &var2.node, 2);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, NULL);
+}
+
+void test_list_remove_front(void) {
+    /* Bad input */
+    assert(list_remove_front(NULL) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var1.node);
+    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var2.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_LIST(list, &var1.node, &var1.node, 1);
+    ASSERT_NODE(var1.node, NULL, NULL);
+    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var1.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_LIST(list, NULL, NULL, 0);
+    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+}
+
+void test_list_remove_back(void) {
+    /* Bad input */
+    assert(list_remove_back(NULL) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var2.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_LIST(list, &var1.node, &var1.node, 1);
+    ASSERT_NODE(var1.node, NULL, NULL);
+    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var1.node, LIST_POISON_PREV, LIST_POISON_NEXT);
+    ASSERT_LIST(list, NULL, NULL, 0);
+    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+}
+
+void test_list_remove_all(void) {
+    /* Bad input */
+    assert(list_remove_all(NULL) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    assert(list_remove_all(&list) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var1.node, LIST_POISON_PREV, &var2.node);
+    ASSERT_NODE(var5.node, &var4.node, LIST_POISON_NEXT);
+    ASSERT_LIST(list, NULL, NULL, 0);
+    assert(list_remove_all(&list) == LIST_FUNC_STAT_OK);
+}
+
+void test_list_cut(void) {
+    /* Bad input */
+    assert(list_cut(NULL, NULL, NULL, 0) == LIST_FUNC_STAT_ERROR);
+    assert(list_cut(&list, &var1.node, NULL, 1) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    assert(list_cut(&list, &var3.node, &var5.node, 3) == LIST_FUNC_STAT_OK);
+    ASSERT_NODE(var3.node, LIST_POISON_PREV, &var4.node);
+    ASSERT_NODE(var5.node, &var4.node, LIST_POISON_NEXT);
+    ASSERT_LIST(list, &var1.node, &var2.node, 2);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, NULL);
+}
+
+void test_list_paste(void) {
+    /* Bad input */
+    assert(list_paste(NULL, NULL, NULL, NULL, NULL, 0) == LIST_FUNC_STAT_ERROR);
+    assert(list_paste(&list, NULL, &var1.node, NULL, NULL, 1) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&other_list, &var1.node);
+    list_insert_back(&other_list, &var2.node);
+    list_insert_back(&other_list, &var3.node);
+    list_insert_back(&other_list, &var4.node);
+    list_insert_back(&list, &var5.node);
+    list_cut(&other_list, other_list.head, other_list.tail, other_list.size);
+    assert(list_paste(&list, NULL, &var1.node, &var4.node, &var5.node, 4) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(other_list, NULL, NULL, 0);
+    ASSERT_LIST(list, &var1.node, &var5.node, 5);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4.node, NULL);
+}
+
+static int cmp(const ListNode *a, const ListNode *b) {
+    return list_entry(a, TestStruct, node)->val - list_entry(b, TestStruct, node)->val;
+}
+
+void test_list_sort(void) {
+    TestStruct var4cpy = var4;
+
+    /* Bad input */
+    assert(list_sort(NULL, cmp) == LIST_FUNC_STAT_ERROR);
+    assert(list_sort(&list, NULL) == LIST_FUNC_STAT_ERROR);
+
+    /* Valid input */
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var5.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var4cpy.node);
+    list_insert_back(&list, &var3.node);
+    assert(list_sort(&list, cmp) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 6);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var4cpy.node);
+    ASSERT_NODE(var4cpy.node, &var4.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4cpy.node, NULL);
+    assert(list_sort(&list, cmp) == LIST_FUNC_STAT_OK);
+    ASSERT_LIST(list, &var1.node, &var5.node, 6);
+    ASSERT_NODE(var1.node, NULL, &var2.node);
+    ASSERT_NODE(var2.node, &var1.node, &var3.node);
+    ASSERT_NODE(var3.node, &var2.node, &var4.node);
+    ASSERT_NODE(var4.node, &var3.node, &var4cpy.node);
+    ASSERT_NODE(var4cpy.node, &var4.node, &var5.node);
+    ASSERT_NODE(var5.node, &var4cpy.node, NULL);
+}
+
+void test_list_entry(void) {
+    assert(list_entry(&var1.node, TestStruct, node)->val == 1);
+    assert(list_entry(&var1.node, TestStruct, node)->node.prev == LIST_POISON_PREV);
+    assert(list_entry(&var1.node, TestStruct, node)->node.next == LIST_POISON_NEXT);
+}
+
+void test_list_for_each(void) {
+    ListNode *n;
     size_t i = 0;
-    list_for_each(n, list) {
+
+    list_for_each(n, &list) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    list_for_each(n, &list) {
+        ASSERT_FOR_EACH(n, i);
         ++i;
     }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_reverse on empty list.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_reverse(n, list) {
-        ++i;
+void test_list_for_each_reverse(void) {
+    ListNode *n;
+    size_t i = 5;
+
+    list_for_each_reverse(n, &list) {
+        assert(0);
     }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
 
-    // Test list_for_each_safe on empty list.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe(n, list) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
 
-    // Test list_for_each_safe_reverse on empty list.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe_reverse(n, list) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_continue on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_continue(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_continue_reverse on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_continue_reverse(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_safe_continue on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe_continue(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_safe_continue_reverse on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe_continue_reverse(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_from on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_from(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_from_reverse on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_from_reverse(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_safe_from on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe_from(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each_safe_from_reverse on NULL input.
-    list = list_create(test_config_no_ownership);
-    i = 0;
-    list_for_each_safe_from_reverse(n, NULL) {
-        ++i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test list_for_each on non-empty list.
-    list = list_create(test_config_no_ownership);
-    ListNode *head = list_push_back(list, static_var1);
-    ListNode *second = list_push_back(list, static_var2);
-    ListNode *third = list_push_back(list, static_var3);
-    ListNode *fourth = list_push_back(list, static_var4);
-    ListNode *tail = list_push_back(list, static_var5);
-    i = 0;
-    list_for_each(n, list) {
-        assert(n->data == static_var_ptrs[i]);
-        ++i;
-    }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
-
-    // Test list_for_each_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_reverse(n, list) {
-        assert(n->data == static_var_ptrs[i - 1]);
+    list_for_each_reverse(n, &list) {
         --i;
+        ASSERT_FOR_EACH(n, i);
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+}
 
-    // Test list_for_each_safe on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = 0;
-    list_for_each_safe(n, list) {
-        assert(n->data == static_var_ptrs[i]);
+void test_list_for_each_safe(void) {
+    ListNode *n, *backup;
+    size_t i = 0;
+
+    list_for_each_safe(n, backup, &list) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    list_for_each_safe(n, backup, &list) {
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
         n = NULL;
         ++i;
     }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_safe_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_reverse(n, list) {
-        assert(n->data == static_var_ptrs[i - 1]);
-        n = NULL;
+void test_list_for_each_safe_reverse(void) {
+    ListNode *n, *backup;
+    size_t i = 5;
+
+    list_for_each_safe_reverse(n, backup, &list) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    list_for_each_safe_reverse(n, backup, &list) {
         --i;
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
+        n = NULL;
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+}
 
-    // Test list_for_each_continue on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = 1;
-    list_for_each_continue(n, list->head) {
-        assert(n->data == static_var_ptrs[i]);
+void test_list_for_each_after(void) {
+    ListNode *n = NULL;
+    size_t i = 1;
+
+    list_for_each_after(n) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.head;
+    list_for_each_after(n) {
+        ASSERT_FOR_EACH(n, i);
         ++i;
     }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_continue_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size - 1;
-    list_for_each_continue_reverse(n, list->tail) {
-        assert(n->data == static_var_ptrs[i - 1]);
+void test_list_for_each_after_reverse(void) {
+    ListNode *n = NULL;
+    size_t i = 4;
+
+    list_for_each_after_reverse(n) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.tail;
+    list_for_each_after_reverse(n) {
         --i;
+        ASSERT_FOR_EACH(n, i);
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+}
 
-    // Test list_for_each_safe_continue on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = 1;
-    list_for_each_safe_continue(n, list->head) {
-        assert(n->data == static_var_ptrs[i]);
+void test_list_for_each_safe_after(void) {
+    ListNode *n = NULL, *backup;
+    size_t i = 1;
+
+    list_for_each_safe_after(n, backup) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.head;
+    list_for_each_safe_after(n, backup) {
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
         n = NULL;
         ++i;
     }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_safe_continue_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size - 1;
-    list_for_each_safe_continue_reverse(n, list->tail) {
-        assert(n->data == static_var_ptrs[i - 1]);
-        n = NULL;
+void test_list_for_each_safe_after_reverse(void) {
+    ListNode *n = NULL, *backup;
+    size_t i = 4;
+
+    list_for_each_safe_after_reverse(n, backup) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.tail;
+    list_for_each_safe_after_reverse(n, backup) {
         --i;
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
+        n = NULL;
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+}
 
-    // Test list_for_each_from on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = 0;
-    list_for_each_from(n, list->head) {
-        assert(n->data == static_var_ptrs[i]);
+void test_list_for_each_from(void) {
+    ListNode *n = NULL;
+    size_t i = 0;
+
+    list_for_each_from(n) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.head;
+    list_for_each_from(n) {
+        ASSERT_FOR_EACH(n, i);
         ++i;
     }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_from_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_from_reverse(n, list->tail) {
-        assert(n->data == static_var_ptrs[i - 1]);
+void test_list_for_each_from_reverse(void) {
+    ListNode *n = NULL;
+    size_t i = 5;
+
+    list_for_each_from_reverse(n) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.tail;
+    list_for_each_from_reverse(n) {
         --i;
+        ASSERT_FOR_EACH(n, i);
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+}
 
-    // Test list_for_each_safe_from on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = 0;
-    list_for_each_safe_from(n, list->head) {
-        assert(n->data == static_var_ptrs[i]);
+void test_list_for_each_safe_from(void) {
+    ListNode *n = NULL, *backup;
+    size_t i = 0;
+
+    list_for_each_safe_from(n, backup) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.head;
+    list_for_each_safe_from(n, backup) {
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
         n = NULL;
         ++i;
     }
-    assert(i == list->size);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
+    assert(i == 5);
+}
 
-    // Test list_for_each_safe_from_reverse on non-empty list, and simultaneously test reassignment.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    second = list_push_back(list, static_var2);
-    third = list_push_back(list, static_var3);
-    fourth = list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_from_reverse(n, list->tail) {
-        assert(n->data == static_var_ptrs[i - 1]);
+void test_list_for_each_safe_from_reverse(void) {
+    ListNode *n = NULL, *backup;
+    size_t i = 5;
+
+    list_for_each_safe_from_reverse(n, backup) {
+        assert(0);
+    }
+
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
+
+    n = list.tail;
+    list_for_each_safe_from_reverse(n, backup) {
+        --i;
+        ASSERT_FOR_EACH(n, i);
+        list_remove(&list, n);
         n = NULL;
-        --i;
     }
     assert(i == 0);
-    assert(list->head == head);
-    assert(list->tail == tail);
-    assert(list->size == 5);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == second);
-    assert(second->data == static_var2);
-    assert(second->prev == head);
-    assert(second->next == third);
-    assert(third->data == static_var3);
-    assert(third->prev == second);
-    assert(third->next == fourth);
-    assert(fourth->data == static_var4);
-    assert(fourth->prev == third);
-    assert(fourth->next == tail);
-    assert(tail->data == static_var5);
-    assert(tail->prev == fourth);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    second = NULL;
-    third = NULL;
-    fourth = NULL;
-    tail = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe on non-empty list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe(n, list) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_reverse(n, list) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe_continue on non-empty list.
-    list = list_create(test_config_no_ownership);
-    head = list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_continue(n, list->head) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 1);
-    assert(list->head == head);
-    assert(list->tail == head);
-    assert(list->size == 1);
-    assert(head->data == static_var1);
-    assert(head->prev == NULL);
-    assert(head->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    head = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe_continue_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    tail = list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_continue_reverse(n, list->tail) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 1);
-    assert(list->head == tail);
-    assert(list->tail == tail);
-    assert(list->size == 1);
-    assert(tail->data == static_var5);
-    assert(tail->prev == NULL);
-    assert(tail->next == NULL);
-    list_destroy(list);
-    list = NULL;
-    tail = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe_from on non-empty list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_from(n, list->head) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
-
-    // Test node removal using list_for_each_safe_from_reverse on non-empty list.
-    list = list_create(test_config_no_ownership);
-    list_push_back(list, static_var1);
-    list_push_back(list, static_var2);
-    list_push_back(list, static_var3);
-    list_push_back(list, static_var4);
-    list_push_back(list, static_var5);
-    i = list->size;
-    list_for_each_safe_from_reverse(n, list->tail) {
-        list_remove(list, n);
-        --i;
-    }
-    assert(i == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
-    assert(list->size == 0);
-    list_destroy(list);
-    list = NULL;
-    i = 100;
 }
 
 TestFunc test_funcs[] = {
-    test_list_create_and_destroy,
+    test_list_initialize,
+    test_list_head,
+    test_list_tail,
+    test_list_size,
+    test_list_prev,
+    test_list_next,
+    test_list_empty,
     test_list_index_of,
     test_list_at,
     test_list_insert_left,
     test_list_insert_right,
-    test_list_push_front,
-    test_list_push_back,
-    test_list_clear,
-    test_list_remove,
-    test_list_pop_front,
-    test_list_pop_back,
-    test_list_sort,
+    test_list_insert_front,
+    test_list_insert_back,
     test_list_splice_left,
     test_list_splice_right,
     test_list_splice_front,
     test_list_splice_back,
-    test_list_traversal_macros
+    test_list_remove,
+    test_list_remove_front,
+    test_list_remove_back,
+    test_list_remove_all,
+    test_list_cut,
+    test_list_paste,
+    test_list_sort,
+    test_list_entry,
+    test_list_for_each,
+    test_list_for_each_reverse,
+    test_list_for_each_safe,
+    test_list_for_each_safe_reverse,
+    test_list_for_each_after,
+    test_list_for_each_after_reverse,
+    test_list_for_each_safe_after,
+    test_list_for_each_safe_after_reverse,
+    test_list_for_each_from,
+    test_list_for_each_from_reverse,
+    test_list_for_each_safe_from,
+    test_list_for_each_safe_from_reverse
 };
 
-int main(void) {
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 17);
-    run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc));
+int main(int argc, char *argv[]) {
+    char msg[100] = "List ";
+    strcat(msg, argv[1]);
+
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 37);
+    run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc), msg, reset_globals);
+
     return 0;
 }
