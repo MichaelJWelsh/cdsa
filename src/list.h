@@ -33,6 +33,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *          int main(void) {
  *              struct Object obj;
+ *              obj.val = 5;
  *              List list;
  *              int copy_val;
  *
