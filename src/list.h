@@ -36,11 +36,10 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *              List list;
  *              int copy_val;
  *
- *              obj.val = 5;
- *
  *              list_initialize(&list);
  *              list_insert_back(&list, &obj.n);
  *
+ *              obj.val = 5;
  *              copy_val = list_entry(list_head(&list), struct Object, n)->val;
  *              assert(obj.val == copy_val);
  *
