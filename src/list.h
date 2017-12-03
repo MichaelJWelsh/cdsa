@@ -33,9 +33,10 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *          int main(void) {
  *              struct Object obj;
- *              obj.val = 5;
  *              List list;
  *              int copy_val;
+ *
+ *              obj.val = 5;
  *
  *              list_initialize(&list);
  *              list_insert_back(&list, &obj.n);
