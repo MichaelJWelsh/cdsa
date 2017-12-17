@@ -68,6 +68,8 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *          -   list_next
  *      Properties:
  *          -   list_empty
+ *          -   list_front
+ *          -   list_back
  *      Array Interfacing:
  *          -   list_index_of
  *          -   list_at
@@ -198,7 +200,7 @@ ListFuncStat list_initialize(List *list);
  * @param list                  The @ref List whose "head" member will be returned.
  * @return                      The head @ref ListNode of the @ref list. NULL if @ref list == NULL.
  */
-ListNode* list_head(List *list);
+ListNode* list_head(const List *list);
 
 /**
  * Returns the tail @ref ListNode of the @ref list. Returns NULL if @ref list == NULL.
@@ -212,7 +214,7 @@ ListNode* list_head(List *list);
  * @param list                  The @ref List whose "tail" member will be returned.
  * @return                      The tail @ref ListNode of the @ref list. NULL if @ref list == NULL.
  */
-ListNode* list_tail(List *list);
+ListNode* list_tail(const List *list);
 
 /**
  * Returns the size of the @ref list. Returns 0 if @ref list == NULL.
@@ -226,7 +228,7 @@ ListNode* list_tail(List *list);
  * @param list                  The @ref List whose "size" member will be returned.
  * @return                      The size of the @ref list. 0 if @ref list == NULL.
  */
-size_t list_size(List *list);
+size_t list_size(const List *list);
 
 /**
  * Returns the @ref ListNode before the @ref node. Returns NULL if @ref node == NULL.
@@ -240,7 +242,7 @@ size_t list_size(List *list);
  * @param node                  The @ref ListNode whose "prev" member will be returned.
  * @return                      The @ref ListNode before the @ref node. NULL if @ref node == NULL.
  */
-ListNode* list_prev(ListNode *node);
+ListNode* list_prev(const ListNode *node);
 
 /**
  * Returns the @ref ListNode after the @ref node. Returns NULL if @ref node == NULL.
@@ -254,7 +256,7 @@ ListNode* list_prev(ListNode *node);
  * @param node                  The @ref ListNode whose "next" member will be returned.
  * @return                      The @ref ListNode after the @ref node. NULL if @ref node == NULL.
  */
-ListNode* list_next(ListNode *node);
+ListNode* list_next(const ListNode *node);
 
 /**
  * Returns whether or not the @ref list is empty (i.e. @ref list->size == 0). Returns 1 (true) if
@@ -270,7 +272,37 @@ ListNode* list_next(ListNode *node);
  * @return                      Whether or not the @ref list is empty (i.e. @ref list->size == 0). 1 (true) if
  *                              @ref list == NULL.
  */
-int list_empty(List *list);
+int list_empty(const List *list);
+
+/**
+ * Returns the front of the list (this is an alias for the function @ref list_head). Returns NULL if
+ * @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "head" member will be returned.
+ * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->head.
+ */
+ListNode* list_front(const List *list);
+
+/**
+ * Returns the back of the list (this is an alias for the function @ref list_tail). Returns NULL if
+ * @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "tail" member will be returned.
+ * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->tail.
+ */
+ListNode* list_back(const List *list);
 
 /**
  * Retrieves the index of the @ref node in the @ref list.
@@ -292,7 +324,7 @@ int list_empty(List *list);
  * @param out                   The variable where the index of the @ref node will be stored.
  * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_index_of(List *list, ListNode *node, size_t *out);
+ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out);
 
 /**
  * Retrieves the @ref ListNode at the @ref index.
@@ -314,7 +346,7 @@ ListFuncStat list_index_of(List *list, ListNode *node, size_t *out);
  * @param out                   The variable where the @ref ListNode at the @ref index will be stored.
  * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_at(List *list, size_t index, ListNode **out);
+ListFuncStat list_at(const List *list, size_t index, ListNode **out);
 
 /**
  * Inserts the @ref new_node to the left of the @ref position. If @ref position == NULL, inserts the

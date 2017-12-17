@@ -184,6 +184,26 @@ void test_list_empty(void) {
     assert(list_empty(&list) == 0);
 }
 
+void test_list_front(void) {
+    /* NULL input */
+    assert(list_front(&list) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_front(&list) == &var1.node);
+}
+
+void test_list_back(void) {
+    /* NULL input */
+    assert(list_back(&list) == NULL);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_back(&list) == &var2.node);
+}
+
 void test_list_index_of(void) {
     size_t index;
 
@@ -825,6 +845,8 @@ TestFunc test_funcs[] = {
     test_list_prev,
     test_list_next,
     test_list_empty,
+    test_list_front,
+    test_list_back,
     test_list_index_of,
     test_list_at,
     test_list_insert_left,
@@ -861,7 +883,7 @@ int main(int argc, char *argv[]) {
     char msg[100] = "List ";
     strcat(msg, argv[1]);
 
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 37);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 39);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc), msg, reset_globals);
 
     return 0;
