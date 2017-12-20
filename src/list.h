@@ -40,7 +40,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *              list_insert_back(&list, &obj.n);
  *
  *              obj.val = 5;
- *              copy_val = list_entry(list_head(&list), struct Object, n)->val;
+ *              copy_val = list_entry(list_front(&list), struct Object, n)->val;
  *              assert(obj.val == copy_val);
  *
  *              return 0;
@@ -60,16 +60,13 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      ====  FUNCTIONS  ====
  *      Initializers:
  *          -   list_initialize
- *      Accessors:
- *          -   list_head
- *          -   list_tail
- *          -   list_size
- *          -   list_prev
- *          -   list_next
  *      Properties:
- *          -   list_empty
  *          -   list_front
  *          -   list_back
+ *          -   list_prev
+ *          -   list_next
+ *          -   list_size
+ *          -   list_empty
  *      Array Interfacing:
  *          -   list_index_of
  *          -   list_at
@@ -101,7 +98,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      Initializers:
  *          -   LIST_INITIALIZER
  *          -   LIST_NODE_INITIALIZER
- *      Accessors:
+ *      Properties:
  *          -   list_entry
  *      Traversal:
  *          -   list_for_each
@@ -189,7 +186,7 @@ typedef enum ListFuncStat {
 ListFuncStat list_initialize(List *list);
 
 /**
- * Returns the head @ref ListNode of the @ref list. Returns NULL if @ref list == NULL.
+ * Returns the front of the list. Returns NULL if @ref list == NULL.
  *
  * Requirements:
  *      -   none
@@ -198,12 +195,12 @@ ListFuncStat list_initialize(List *list);
  *      -   O(1)
  *
  * @param list                  The @ref List whose "head" member will be returned.
- * @return                      The head @ref ListNode of the @ref list. NULL if @ref list == NULL.
+ * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->head.
  */
-ListNode* list_head(const List *list);
+ListNode* list_front(const List *list);
 
 /**
- * Returns the tail @ref ListNode of the @ref list. Returns NULL if @ref list == NULL.
+ * Returns the back of the list. Returns NULL if @ref list == NULL.
  *
  * Requirements:
  *      -   none
@@ -212,23 +209,9 @@ ListNode* list_head(const List *list);
  *      -   O(1)
  *
  * @param list                  The @ref List whose "tail" member will be returned.
- * @return                      The tail @ref ListNode of the @ref list. NULL if @ref list == NULL.
+ * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->tail.
  */
-ListNode* list_tail(const List *list);
-
-/**
- * Returns the size of the @ref list. Returns 0 if @ref list == NULL.
- *
- * Requirements:
- *      -   none
- *
- * Time complexity:
- *      -   O(1)
- *
- * @param list                  The @ref List whose "size" member will be returned.
- * @return                      The size of the @ref list. 0 if @ref list == NULL.
- */
-size_t list_size(const List *list);
+ListNode* list_back(const List *list);
 
 /**
  * Returns the @ref ListNode before the @ref node. Returns NULL if @ref node == NULL.
@@ -259,6 +242,20 @@ ListNode* list_prev(const ListNode *node);
 ListNode* list_next(const ListNode *node);
 
 /**
+ * Returns the size of the @ref list. Returns 0 if @ref list == NULL.
+ *
+ * Requirements:
+ *      -   none
+ *
+ * Time complexity:
+ *      -   O(1)
+ *
+ * @param list                  The @ref List whose "size" member will be returned.
+ * @return                      The size of the @ref list. 0 if @ref list == NULL.
+ */
+size_t list_size(const List *list);
+
+/**
  * Returns whether or not the @ref list is empty (i.e. @ref list->size == 0). Returns 1 (true) if
  * @ref list == NULL.
  *
@@ -273,36 +270,6 @@ ListNode* list_next(const ListNode *node);
  *                              @ref list == NULL.
  */
 int list_empty(const List *list);
-
-/**
- * Returns the front of the list (this is an alias for the function @ref list_head). Returns NULL if
- * @ref list == NULL.
- *
- * Requirements:
- *      -   none
- *
- * Time complexity:
- *      -   O(1)
- *
- * @param list                  The @ref List whose "head" member will be returned.
- * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->head.
- */
-ListNode* list_front(const List *list);
-
-/**
- * Returns the back of the list (this is an alias for the function @ref list_tail). Returns NULL if
- * @ref list == NULL.
- *
- * Requirements:
- *      -   none
- *
- * Time complexity:
- *      -   O(1)
- *
- * @param list                  The @ref List whose "tail" member will be returned.
- * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->tail.
- */
-ListNode* list_back(const List *list);
 
 /**
  * Retrieves the index of the @ref node in the @ref list.

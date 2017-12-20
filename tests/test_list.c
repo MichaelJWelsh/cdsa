@@ -125,31 +125,24 @@ void test_list_initialize(void) {
     ASSERT_LIST(list, NULL, NULL, 0);
 }
 
-void test_list_head(void) {
+void test_list_front(void) {
     /* NULL input */
-    assert(list_head(NULL) == NULL);
+    assert(list_front(&list) == NULL);
 
     /* Valid input */
     list_insert_back(&list, &var1.node);
-    assert(list_head(&list) == &var1.node);
+    list_insert_back(&list, &var2.node);
+    assert(list_front(&list) == &var1.node);
 }
 
-void test_list_tail(void) {
+void test_list_back(void) {
     /* NULL input */
-    assert(list_tail(NULL) == NULL);
+    assert(list_back(&list) == NULL);
 
     /* Valid input */
     list_insert_back(&list, &var1.node);
-    assert(list_tail(&list) == &var1.node);
-}
-
-void test_list_size(void) {
-    /* NULL input */
-    assert(list_size(NULL) == 0);
-
-    /* Valid input */
-    list_insert_back(&list, &var1.node);
-    assert(list_size(&list) == 1);
+    list_insert_back(&list, &var2.node);
+    assert(list_back(&list) == &var2.node);
 }
 
 void test_list_prev(void) {
@@ -174,6 +167,15 @@ void test_list_next(void) {
     assert(list_next(&var2.node) == NULL);
 }
 
+void test_list_size(void) {
+    /* NULL input */
+    assert(list_size(NULL) == 0);
+
+    /* Valid input */
+    list_insert_back(&list, &var1.node);
+    assert(list_size(&list) == 1);
+}
+
 void test_list_empty(void) {
     /* NULL input */
     assert(list_empty(NULL) == 1);
@@ -182,26 +184,6 @@ void test_list_empty(void) {
     assert(list_empty(&list) == 1);
     list_insert_back(&list, &var1.node);
     assert(list_empty(&list) == 0);
-}
-
-void test_list_front(void) {
-    /* NULL input */
-    assert(list_front(&list) == NULL);
-
-    /* Valid input */
-    list_insert_back(&list, &var1.node);
-    list_insert_back(&list, &var2.node);
-    assert(list_front(&list) == &var1.node);
-}
-
-void test_list_back(void) {
-    /* NULL input */
-    assert(list_back(&list) == NULL);
-
-    /* Valid input */
-    list_insert_back(&list, &var1.node);
-    list_insert_back(&list, &var2.node);
-    assert(list_back(&list) == &var2.node);
 }
 
 void test_list_index_of(void) {
@@ -839,14 +821,12 @@ void test_list_for_each_safe_from_reverse(void) {
 
 TestFunc test_funcs[] = {
     test_list_initialize,
-    test_list_head,
-    test_list_tail,
-    test_list_size,
-    test_list_prev,
-    test_list_next,
-    test_list_empty,
     test_list_front,
     test_list_back,
+    test_list_prev,
+    test_list_next,
+    test_list_size,
+    test_list_empty,
     test_list_index_of,
     test_list_at,
     test_list_insert_left,
@@ -883,7 +863,7 @@ int main(int argc, char *argv[]) {
     char msg[100] = "List ";
     strcat(msg, argv[1]);
 
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 39);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 37);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc), msg, reset_globals);
 
     return 0;

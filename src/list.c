@@ -32,16 +32,12 @@ ListFuncStat list_initialize(List *list) {
     return LIST_FUNC_STAT_OK;
 }
 
-ListNode* list_head(const List *list) {
+ListNode* list_front(const List *list) {
     return list ? list->head : NULL;
 }
 
-ListNode* list_tail(const List *list) {
+ListNode* list_back(const List *list) {
     return list ? list->tail : NULL;
-}
-
-size_t list_size(const List *list) {
-    return list ? list->size : 0;
 }
 
 ListNode* list_prev(const ListNode *node) {
@@ -52,16 +48,12 @@ ListNode* list_next(const ListNode *node) {
     return node ? node->next : NULL;
 }
 
+size_t list_size(const List *list) {
+    return list ? list->size : 0;
+}
+
 int list_empty(const List *list) {
     return list ? list->size == 0 : 1;
-}
-
-ListNode* list_front(const List *list) {
-    return list ? list->head : NULL;
-}
-
-ListNode* list_back(const List *list) {
-    return list ? list->tail : NULL;
 }
 
 ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out) {
