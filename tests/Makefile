@@ -1,8 +1,8 @@
 C_COMPILER=gcc
-C_FLAGS=-Wall -Werror -pedantic-errors -std=c89
+C_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c89
 
 CPP_COMPILER=g++
-CPP_FLAGS=-Wall -Werror -pedantic-errors -std=c++11
+CPP_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c++11
 
 all: test_list
 

@@ -16,83 +16,86 @@ NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include <assert.h>
 #include <stddef.h>
 
 #include "list.h"
 
-ListFuncStat list_initialize(List *list) {
-    if (!list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_initialize(List *list) {
+    assert(list);
 
     list->head = NULL;
     list->tail = NULL;
     list->size = 0;
-
-    return LIST_FUNC_STAT_OK;
 }
 
 ListNode* list_front(const List *list) {
-    return list ? list->head : NULL;
+    assert(list);
+
+    return list->head;
 }
 
 ListNode* list_back(const List *list) {
-    return list ? list->tail : NULL;
+    assert(list);
+
+    return list->tail;
 }
 
 ListNode* list_prev(const ListNode *node) {
-    return node ? node->prev : NULL;
+    assert(node);
+
+    return node->prev;
 }
 
 ListNode* list_next(const ListNode *node) {
-    return node ? node->next : NULL;
+    assert(node);
+
+    return node->next;
 }
 
 size_t list_size(const List *list) {
-    return list ? list->size : 0;
+    assert(list);
+
+    return list->size;
 }
 
 int list_empty(const List *list) {
-    return list ? list->size == 0 : 1;
+    assert(list);
+
+    return list->size == 0;
 }
 
-ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out) {
-    if (!list || !node || !out) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+size_t list_index_of(const List *list, const ListNode *node) {
+    assert(list && node);
 
     if (list->tail == node) {
-        *out = list->size - 1;
-        return LIST_FUNC_STAT_OK;
+        return list->size - 1;
     } else {
         ListNode *n;
         size_t i = 0;
         list_for_each(n, list) {
             if (n == node) {
-                *out = i;
-                return LIST_FUNC_STAT_OK;
+                return i;
             }
             ++i;
         }
     }
 
-    return LIST_FUNC_STAT_ERROR;
+    assert(0);
+    return (size_t) -1;
 }
 
-ListFuncStat list_at(const List *list, size_t index, ListNode **out) {
+ListNode* list_at(const List *list, size_t index) {
     ListNode *n;
     size_t i;
 
-    if (!list || index >= list->size || !out) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && index < list->size);
 
     if (index < list->size / 2) {
         i = 0;
         list_for_each(n, list) {
             if (i == index) {
-                *out = n;
-                return LIST_FUNC_STAT_OK;
+                return n;
             }
             ++i;
         }
@@ -100,63 +103,45 @@ ListFuncStat list_at(const List *list, size_t index, ListNode **out) {
         i = list->size - 1;
         list_for_each_reverse(n, list) {
             if (i == index) {
-                *out = n;
-                return LIST_FUNC_STAT_OK;
+                return n;
             }
             --i;
         }
     }
 
-    return LIST_FUNC_STAT_ERROR;
+    assert(0);
+    return NULL;
 }
 
-ListFuncStat list_insert_left(List *list, ListNode *new_node, ListNode *position) {
-    if (!list || !new_node) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_insert_left(List *list, ListNode *new_node, ListNode *position) {
+    assert(list && new_node);
 
     list_paste(list, position ? position->prev : NULL, new_node, new_node, position, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_insert_right(List *list, ListNode *new_node, ListNode *position) {
-    if (!list || !new_node) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_insert_right(List *list, ListNode *new_node, ListNode *position) {
+    assert(list && new_node);
 
     list_paste(list, position, new_node, new_node, position ? position->next : NULL, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_insert_front(List *list, ListNode *new_node) {
-    if (!list || !new_node) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_insert_front(List *list, ListNode *new_node) {
+    assert(list && new_node);
 
     list_paste(list, NULL, new_node, new_node, list->head, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_insert_back(List *list, ListNode *new_node) {
-    if (!list || !new_node) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_insert_back(List *list, ListNode *new_node) {
+    assert(list && new_node);
 
     list_paste(list, list->tail, new_node, new_node, NULL, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position) {
+void list_splice_left(List *list, List *src_list, ListNode *position) {
     ListNode *from, *to;
     size_t range_size;
 
-    if (!list || !src_list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && src_list);
 
     from = src_list->head;
     to = src_list->tail;
@@ -164,17 +149,13 @@ ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position) {
 
     list_cut(src_list, from, to, range_size);
     list_paste(list, position ? position->prev : NULL, from, to, position, range_size);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position) {
+void list_splice_right(List *list, List *src_list, ListNode *position) {
     ListNode *from, *to;
     size_t range_size;
 
-    if (!list || !src_list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && src_list);
 
     from = src_list->head;
     to = src_list->tail;
@@ -182,17 +163,13 @@ ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position) {
 
     list_cut(src_list, from, to, range_size);
     list_paste(list, position, from, to, position ? position->next : NULL, range_size);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_splice_front(List *list, List *src_list) {
+void list_splice_front(List *list, List *src_list) {
     ListNode *from, *to;
     size_t range_size;
 
-    if (!list || !src_list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && src_list);
 
     from = src_list->head;
     to = src_list->tail;
@@ -200,17 +177,13 @@ ListFuncStat list_splice_front(List *list, List *src_list) {
 
     list_cut(src_list, from, to, range_size);
     list_paste(list, NULL, from, to, list->head, range_size);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_splice_back(List *list, List *src_list) {
+void list_splice_back(List *list, List *src_list) {
     ListNode *from, *to;
     size_t range_size;
 
-    if (!list || !src_list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && src_list);
 
     from = src_list->head;
     to = src_list->tail;
@@ -218,57 +191,37 @@ ListFuncStat list_splice_back(List *list, List *src_list) {
 
     list_cut(src_list, from, to, range_size);
     list_paste(list, list->tail, from, to, NULL, range_size);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_remove(List *list, ListNode *node) {
-    if (!list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_remove(List *list, ListNode *node) {
+    assert(list);
 
     list_cut(list, node, node, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_remove_front(List *list) {
-    if (!list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_remove_front(List *list) {
+    assert(list);
 
     list_cut(list, list->head, list->head, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_remove_back(List *list) {
-    if (!list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_remove_back(List *list) {
+    assert(list);
 
     list_cut(list, list->tail, list->tail, 1);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_remove_all(List *list) {
-    if (!list) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_remove_all(List *list) {
+    assert(list);
 
     list_cut(list, list->head, list->tail, list->size);
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_size) {
-    if (!list || (from && !to) || (!from && to)) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_cut(List *list, ListNode *from, ListNode *to, size_t range_size) {
+    assert(list && ((!from && !to) || (from && to)));
 
     if (!from) {
-        return LIST_FUNC_STAT_OK;
+        return;
     }
 
     if (list->head == from) {
@@ -287,17 +240,13 @@ ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_siz
     to->next = LIST_POISON_NEXT;
 
     list->size -= range_size;
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size) {
-    if (!list || (from && !to) || (!from && to)) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+void list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size) {
+    assert(list && ((!from && !to) || (from && to)));
 
     if (!from) {
-        return LIST_FUNC_STAT_OK;
+        return;
     }
 
     if (left) {
@@ -315,20 +264,16 @@ ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to
     to->next = right;
 
     list->size += range_size;
-
-    return LIST_FUNC_STAT_OK;
 }
 
-ListFuncStat list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b)) {
+void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b)) {
     ListNode *head, *tail, *left, *right, *next;
     size_t list_size, num_merges, left_size, right_size;
 
-    if (!list || !compare) {
-        return LIST_FUNC_STAT_ERROR;
-    }
+    assert(list && compare);
 
     if (list->size < 2) {
-        return LIST_FUNC_STAT_OK;
+        return;
     }
 
     list_size = 1;
@@ -380,6 +325,4 @@ ListFuncStat list_sort(List *list, int (*compare)(const ListNode *a, const ListN
     } while (num_merges > 1);
     list->head = head;
     list->tail = tail;
-
-    return LIST_FUNC_STAT_OK;
 }

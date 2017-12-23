@@ -111,45 +111,28 @@ static void reset_globals() {
  * ======================================================================================================== */
 
 void test_list_initialize(void) {
-    /* Test out initializer-list macros */
     List list_init_with_macro = LIST_INITIALIZER;
     ListNode node_init_with_macro = LIST_NODE_INITIALIZER;
     ASSERT_LIST(list_init_with_macro, NULL, NULL, 0);
     ASSERT_NODE(node_init_with_macro, LIST_POISON_PREV, LIST_POISON_NEXT);
 
-    /* Bad input */
-    assert(list_initialize(NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
-    assert(list_initialize(&list) == LIST_FUNC_STAT_OK);
+    list_initialize(&list);
     ASSERT_LIST(list, NULL, NULL, 0);
 }
 
 void test_list_front(void) {
-    /* NULL input */
-    assert(list_front(&list) == NULL);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_front(&list) == &var1.node);
 }
 
 void test_list_back(void) {
-    /* NULL input */
-    assert(list_back(&list) == NULL);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_back(&list) == &var2.node);
 }
 
 void test_list_prev(void) {
-    /* NULL input */
-    assert(list_prev(NULL) == NULL);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_prev(&var1.node) == NULL);
@@ -157,10 +140,6 @@ void test_list_prev(void) {
 }
 
 void test_list_next(void) {
-    /* NULL input */
-    assert(list_next(NULL) == NULL);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_next(&var1.node) == &var2.node);
@@ -168,80 +147,49 @@ void test_list_next(void) {
 }
 
 void test_list_size(void) {
-    /* NULL input */
-    assert(list_size(NULL) == 0);
-
-    /* Valid input */
+    assert(list_size(&list) == 0);
     list_insert_back(&list, &var1.node);
     assert(list_size(&list) == 1);
 }
 
 void test_list_empty(void) {
-    /* NULL input */
-    assert(list_empty(NULL) == 1);
-
-    /* Valid input */
     assert(list_empty(&list) == 1);
     list_insert_back(&list, &var1.node);
     assert(list_empty(&list) == 0);
 }
 
 void test_list_index_of(void) {
-    size_t index;
-
-    /* Bad input */
-    assert(list_index_of(NULL, &var1.node, &index) == LIST_FUNC_STAT_ERROR);
-    assert(list_index_of(&list, NULL, &index) == LIST_FUNC_STAT_ERROR);
-    assert(list_index_of(&list, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
-    assert(list_index_of(&list, &var1.node, &index) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var3.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
-    assert(list_index_of(&list, &var1.node, &index) == LIST_FUNC_STAT_OK && index == 0);
-    assert(list_index_of(&list, &var2.node, &index) == LIST_FUNC_STAT_OK && index == 1);
-    assert(list_index_of(&list, &var3.node, &index) == LIST_FUNC_STAT_OK && index == 2);
-    assert(list_index_of(&list, &var4.node, &index) == LIST_FUNC_STAT_OK && index == 3);
-    assert(list_index_of(&list, &var5.node, &index) == LIST_FUNC_STAT_OK && index == 4);
+    assert(list_index_of(&list, &var1.node) == 0);
+    assert(list_index_of(&list, &var2.node) == 1);
+    assert(list_index_of(&list, &var3.node) == 2);
+    assert(list_index_of(&list, &var4.node) == 3);
+    assert(list_index_of(&list, &var5.node) == 4);
 }
 
 void test_list_at(void) {
-    ListNode *at;
-
-    /* Bad input */
-    list_insert_back(&list, &var1.node);
-    assert(list_at(NULL, 0, &at) == LIST_FUNC_STAT_ERROR);
-    assert(list_at(&list, 1, &at) == LIST_FUNC_STAT_ERROR);
-    assert(list_at(&list, 0, NULL) == LIST_FUNC_STAT_ERROR);
-    reset_globals();
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var3.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
-    assert(list_at(&list, 0, &at) == LIST_FUNC_STAT_OK && at == &var1.node);
-    assert(list_at(&list, 1, &at) == LIST_FUNC_STAT_OK && at == &var2.node);
-    assert(list_at(&list, 2, &at) == LIST_FUNC_STAT_OK && at == &var3.node);
-    assert(list_at(&list, 3, &at) == LIST_FUNC_STAT_OK && at == &var4.node);
-    assert(list_at(&list, 4, &at) == LIST_FUNC_STAT_OK && at == &var5.node);
+    assert(list_at(&list, 0) == &var1.node);
+    assert(list_at(&list, 1) == &var2.node);
+    assert(list_at(&list, 2) == &var3.node);
+    assert(list_at(&list, 3) == &var4.node);
+    assert(list_at(&list, 4) == &var5.node);
 }
 
 void test_list_insert_left(void) {
-    /* Bad input */
-    assert(list_insert_left(NULL, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
-    assert(list_insert_left(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
-    assert(list_insert_left(&list, &var5.node, list.tail) == LIST_FUNC_STAT_OK);
-    assert(list_insert_left(&list, &var1.node, list.tail) == LIST_FUNC_STAT_OK);
-    assert(list_insert_left(&list, &var2.node, list.tail) == LIST_FUNC_STAT_OK);
-    assert(list_insert_left(&list, &var3.node, list.tail) == LIST_FUNC_STAT_OK);
-    assert(list_insert_left(&list, &var4.node, list.tail) == LIST_FUNC_STAT_OK);
+    list_insert_left(&list, &var5.node, list.tail);
+    list_insert_left(&list, &var1.node, list.tail);
+    list_insert_left(&list, &var2.node, list.tail);
+    list_insert_left(&list, &var3.node, list.tail);
+    list_insert_left(&list, &var4.node, list.tail);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -251,16 +199,11 @@ void test_list_insert_left(void) {
 }
 
 void test_list_insert_right(void) {
-    /* Bad input */
-    assert(list_insert_right(NULL, &var1.node, NULL) == LIST_FUNC_STAT_ERROR);
-    assert(list_insert_right(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
-    assert(list_insert_right(&list, &var1.node, list.head) == LIST_FUNC_STAT_OK);
-    assert(list_insert_right(&list, &var5.node, list.head) == LIST_FUNC_STAT_OK);
-    assert(list_insert_right(&list, &var4.node, list.head) == LIST_FUNC_STAT_OK);
-    assert(list_insert_right(&list, &var3.node, list.head) == LIST_FUNC_STAT_OK);
-    assert(list_insert_right(&list, &var2.node, list.head) == LIST_FUNC_STAT_OK);
+    list_insert_right(&list, &var1.node, list.head);
+    list_insert_right(&list, &var5.node, list.head);
+    list_insert_right(&list, &var4.node, list.head);
+    list_insert_right(&list, &var3.node, list.head);
+    list_insert_right(&list, &var2.node, list.head);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -270,16 +213,11 @@ void test_list_insert_right(void) {
 }
 
 void test_list_insert_front(void) {
-    /* Bad input */
-    assert(list_insert_front(NULL, &var1.node) == LIST_FUNC_STAT_ERROR);
-    assert(list_insert_front(&list, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
-    assert(list_insert_front(&list, &var5.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_front(&list, &var4.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_front(&list, &var3.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_front(&list, &var2.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_front(&list, &var1.node) == LIST_FUNC_STAT_OK);
+    list_insert_front(&list, &var5.node);
+    list_insert_front(&list, &var4.node);
+    list_insert_front(&list, &var3.node);
+    list_insert_front(&list, &var2.node);
+    list_insert_front(&list, &var1.node);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -289,16 +227,11 @@ void test_list_insert_front(void) {
 }
 
 void test_list_insert_back(void) {
-    /* Bad input */
-    assert(list_insert_back(NULL, &var1.node) == LIST_FUNC_STAT_ERROR);
-    assert(list_insert_back(&list, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
-    assert(list_insert_back(&list, &var1.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_back(&list, &var2.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_back(&list, &var3.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_back(&list, &var4.node) == LIST_FUNC_STAT_OK);
-    assert(list_insert_back(&list, &var5.node) == LIST_FUNC_STAT_OK);
+    list_insert_back(&list, &var1.node);
+    list_insert_back(&list, &var2.node);
+    list_insert_back(&list, &var3.node);
+    list_insert_back(&list, &var4.node);
+    list_insert_back(&list, &var5.node);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -308,17 +241,12 @@ void test_list_insert_back(void) {
 }
 
 void test_list_splice_left(void) {
-    /* Bad input */
-    assert(list_splice_left(NULL, &other_list, NULL) == LIST_FUNC_STAT_ERROR);
-    assert(list_splice_left(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
     list_insert_back(&other_list, &var1.node);
     list_insert_back(&other_list, &var2.node);
     list_insert_back(&other_list, &var3.node);
-    assert(list_splice_left(&list, &other_list, list.head) == LIST_FUNC_STAT_OK);
+    list_splice_left(&list, &other_list, list.head);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -329,17 +257,12 @@ void test_list_splice_left(void) {
 }
 
 void test_list_splice_right(void) {
-    /* Bad input */
-    assert(list_splice_right(NULL, &other_list, NULL) == LIST_FUNC_STAT_ERROR);
-    assert(list_splice_right(&list, NULL, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&other_list, &var3.node);
     list_insert_back(&other_list, &var4.node);
     list_insert_back(&other_list, &var5.node);
-    assert(list_splice_right(&list, &other_list, list.tail) == LIST_FUNC_STAT_OK);
+    list_splice_right(&list, &other_list, list.tail);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -350,17 +273,12 @@ void test_list_splice_right(void) {
 }
 
 void test_list_splice_front(void) {
-    /* Bad input */
-    assert(list_splice_front(NULL, &other_list) == LIST_FUNC_STAT_ERROR);
-    assert(list_splice_front(&list, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
     list_insert_back(&other_list, &var1.node);
     list_insert_back(&other_list, &var2.node);
     list_insert_back(&other_list, &var3.node);
-    assert(list_splice_front(&list, &other_list) == LIST_FUNC_STAT_OK);
+    list_splice_front(&list, &other_list);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -371,17 +289,12 @@ void test_list_splice_front(void) {
 }
 
 void test_list_splice_back(void) {
-    /* Bad input */
-    assert(list_splice_back(NULL, &other_list) == LIST_FUNC_STAT_ERROR);
-    assert(list_splice_back(&list, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&other_list, &var3.node);
     list_insert_back(&other_list, &var4.node);
     list_insert_back(&other_list, &var5.node);
-    assert(list_splice_back(&list, &other_list) == LIST_FUNC_STAT_OK);
+    list_splice_back(&list, &other_list);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -392,19 +305,15 @@ void test_list_splice_back(void) {
 }
 
 void test_list_remove(void) {
-    /* Bad input */
-    assert(list_remove(NULL, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var5.node);
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var3.node);
-    assert(list_remove(&list, &var5.node) == LIST_FUNC_STAT_OK);
-    assert(list_remove(&list, &var4.node) == LIST_FUNC_STAT_OK);
-    assert(list_remove(&list, &var3.node) == LIST_FUNC_STAT_OK);
-    assert(list_remove(&list, NULL) == LIST_FUNC_STAT_OK);
+    list_remove(&list, &var5.node);
+    list_remove(&list, &var4.node);
+    list_remove(&list, &var3.node);
+    list_remove(&list, NULL);
     ASSERT_NODE(var3.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_NODE(var4.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_NODE(var5.node, LIST_POISON_PREV, LIST_POISON_NEXT);
@@ -414,68 +323,51 @@ void test_list_remove(void) {
 }
 
 void test_list_remove_front(void) {
-    /* Bad input */
-    assert(list_remove_front(NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var1.node);
-    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+    list_remove_front(&list);
     ASSERT_NODE(var2.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_LIST(list, &var1.node, &var1.node, 1);
     ASSERT_NODE(var1.node, NULL, NULL);
-    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+    list_remove_front(&list);
     ASSERT_NODE(var1.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_LIST(list, NULL, NULL, 0);
-    assert(list_remove_front(&list) == LIST_FUNC_STAT_OK);
+    list_remove_front(&list);
 }
 
 void test_list_remove_back(void) {
-    /* Bad input */
-    assert(list_remove_back(NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
-    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+    list_remove_back(&list);
     ASSERT_NODE(var2.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_LIST(list, &var1.node, &var1.node, 1);
     ASSERT_NODE(var1.node, NULL, NULL);
-    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+    list_remove_back(&list);
     ASSERT_NODE(var1.node, LIST_POISON_PREV, LIST_POISON_NEXT);
     ASSERT_LIST(list, NULL, NULL, 0);
-    assert(list_remove_back(&list) == LIST_FUNC_STAT_OK);
+    list_remove_back(&list);
 }
 
 void test_list_remove_all(void) {
-    /* Bad input */
-    assert(list_remove_all(NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var3.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
-    assert(list_remove_all(&list) == LIST_FUNC_STAT_OK);
+    list_remove_all(&list);
     ASSERT_NODE(var1.node, LIST_POISON_PREV, &var2.node);
     ASSERT_NODE(var5.node, &var4.node, LIST_POISON_NEXT);
     ASSERT_LIST(list, NULL, NULL, 0);
-    assert(list_remove_all(&list) == LIST_FUNC_STAT_OK);
+    list_remove_all(&list);
 }
 
 void test_list_cut(void) {
-    /* Bad input */
-    assert(list_cut(NULL, NULL, NULL, 0) == LIST_FUNC_STAT_ERROR);
-    assert(list_cut(&list, &var1.node, NULL, 1) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var3.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var5.node);
-    assert(list_cut(&list, &var3.node, &var5.node, 3) == LIST_FUNC_STAT_OK);
+    list_cut(&list, &var3.node, &var5.node, 3);
     ASSERT_NODE(var3.node, LIST_POISON_PREV, &var4.node);
     ASSERT_NODE(var5.node, &var4.node, LIST_POISON_NEXT);
     ASSERT_LIST(list, &var1.node, &var2.node, 2);
@@ -484,18 +376,13 @@ void test_list_cut(void) {
 }
 
 void test_list_paste(void) {
-    /* Bad input */
-    assert(list_paste(NULL, NULL, NULL, NULL, NULL, 0) == LIST_FUNC_STAT_ERROR);
-    assert(list_paste(&list, NULL, &var1.node, NULL, NULL, 1) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&other_list, &var1.node);
     list_insert_back(&other_list, &var2.node);
     list_insert_back(&other_list, &var3.node);
     list_insert_back(&other_list, &var4.node);
     list_insert_back(&list, &var5.node);
     list_cut(&other_list, other_list.head, other_list.tail, other_list.size);
-    assert(list_paste(&list, NULL, &var1.node, &var4.node, &var5.node, 4) == LIST_FUNC_STAT_OK);
+    list_paste(&list, NULL, &var1.node, &var4.node, &var5.node, 4);
     ASSERT_LIST(other_list, NULL, NULL, 0);
     ASSERT_LIST(list, &var1.node, &var5.node, 5);
     ASSERT_NODE(var1.node, NULL, &var2.node);
@@ -512,18 +399,13 @@ static int cmp(const ListNode *a, const ListNode *b) {
 void test_list_sort(void) {
     TestStruct var4cpy = var4;
 
-    /* Bad input */
-    assert(list_sort(NULL, cmp) == LIST_FUNC_STAT_ERROR);
-    assert(list_sort(&list, NULL) == LIST_FUNC_STAT_ERROR);
-
-    /* Valid input */
     list_insert_back(&list, &var2.node);
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var5.node);
     list_insert_back(&list, &var4.node);
     list_insert_back(&list, &var4cpy.node);
     list_insert_back(&list, &var3.node);
-    assert(list_sort(&list, cmp) == LIST_FUNC_STAT_OK);
+    list_sort(&list, cmp);
     ASSERT_LIST(list, &var1.node, &var5.node, 6);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -531,7 +413,7 @@ void test_list_sort(void) {
     ASSERT_NODE(var4.node, &var3.node, &var4cpy.node);
     ASSERT_NODE(var4cpy.node, &var4.node, &var5.node);
     ASSERT_NODE(var5.node, &var4cpy.node, NULL);
-    assert(list_sort(&list, cmp) == LIST_FUNC_STAT_OK);
+    list_sort(&list, cmp);
     ASSERT_LIST(list, &var1.node, &var5.node, 6);
     ASSERT_NODE(var1.node, NULL, &var2.node);
     ASSERT_NODE(var2.node, &var1.node, &var3.node);
@@ -861,6 +743,7 @@ TestFunc test_funcs[] = {
 
 int main(int argc, char *argv[]) {
     char msg[100] = "List ";
+    assert(argc == 2);
     strcat(msg, argv[1]);
 
     assert(sizeof(test_funcs) / sizeof(TestFunc) == 37);

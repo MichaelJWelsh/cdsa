@@ -47,15 +47,13 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *          }
  *
  * Dependencies:
+ *      -   C89 assert.h
  *      -   C89 stddef.h
  *
  * API:
  *      ====  TYPES  ====
  *      -   typedef struct List List
  *      -   typedef struct ListNode ListNode
- *      -   typedef enum ListFuncStat ListFuncStat
- *          -   LIST_FUNC_STAT_OK = 0
- *          -   LIST_FUNC_STAT_ERROR = -1
  *
  *      ====  FUNCTIONS  ====
  *      Initializers:
@@ -155,16 +153,6 @@ struct ListNode {
     ListNode *next;
 };
 
-/**
- * Represents the error codes returned by certain functions that have a set of preconditions that must be
- * obeyed. In the case of error, these functions provide a strong guarantee that all arguments passed remain
- * unchanged.
- */
-typedef enum ListFuncStat {
-    LIST_FUNC_STAT_OK = 0,
-    LIST_FUNC_STAT_ERROR = -1
-} ListFuncStat;
-
 /* ========================================================================================================
  *
  *                                               PROTOTYPES
@@ -181,93 +169,90 @@ typedef enum ListFuncStat {
  *      -   O(1)
  *
  * @param list                  The @ref List to be initialized/reset.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_initialize(List *list);
+void list_initialize(List *list);
 
 /**
- * Returns the front of the list. Returns NULL if @ref list == NULL.
+ * Returns the front of the list.
  *
  * Requirements:
- *      -   none
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List whose "head" member will be returned.
- * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->head.
+ * @return                      @ref list->head.
  */
 ListNode* list_front(const List *list);
 
 /**
- * Returns the back of the list. Returns NULL if @ref list == NULL.
+ * Returns the back of the list.
  *
  * Requirements:
- *      -   none
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List whose "tail" member will be returned.
- * @return                      NULL if @ref list == NULL; otherwise, returns @ref list->tail.
+ * @return                      @ref list->tail.
  */
 ListNode* list_back(const List *list);
 
 /**
- * Returns the @ref ListNode before the @ref node. Returns NULL if @ref node == NULL.
+ * Returns the @ref ListNode before the @ref node.
  *
  * Requirements:
- *      -   none
+ *      -   @ref node != NULL.
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param node                  The @ref ListNode whose "prev" member will be returned.
- * @return                      The @ref ListNode before the @ref node. NULL if @ref node == NULL.
+ * @return                      @ref node->prev.
  */
 ListNode* list_prev(const ListNode *node);
 
 /**
- * Returns the @ref ListNode after the @ref node. Returns NULL if @ref node == NULL.
+ * Returns the @ref ListNode after the @ref node.
  *
  * Requirements:
- *      -   none
+ *      -   @ref node != NULL.
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param node                  The @ref ListNode whose "next" member will be returned.
- * @return                      The @ref ListNode after the @ref node. NULL if @ref node == NULL.
+ * @return                      @ref node->next.
  */
 ListNode* list_next(const ListNode *node);
 
 /**
- * Returns the size of the @ref list. Returns 0 if @ref list == NULL.
+ * Returns the size of the @ref list.
  *
  * Requirements:
- *      -   none
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List whose "size" member will be returned.
- * @return                      The size of the @ref list. 0 if @ref list == NULL.
+ * @return                      @ref list->size.
  */
 size_t list_size(const List *list);
 
 /**
- * Returns whether or not the @ref list is empty (i.e. @ref list->size == 0). Returns 1 (true) if
- * @ref list == NULL.
+ * Returns whether or not the @ref list is empty (i.e. @ref list->size == 0).
  *
  * Requirements:
- *      -   none
+ *      -   @ref list != NULL
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param list                  The @ref List whose "size" member will be used to determine if it is empty.
- * @return                      Whether or not the @ref list is empty (i.e. @ref list->size == 0). 1 (true) if
- *                              @ref list == NULL.
+ * @return                      Whether or not the @ref list is empty (i.e. @ref list->size == 0).
  */
 int list_empty(const List *list);
 
@@ -277,7 +262,6 @@ int list_empty(const List *list);
  * Requirements:
  *      -   @ref list != NULL
  *      -   @ref node != NULL
- *      -   @ref out != NULL
  *
  * Time complexity:
  *      -   If front/back:
@@ -288,10 +272,9 @@ int list_empty(const List *list);
  *
  * @param list                  The @ref List that contains the @ref node.
  * @param node                  The @ref ListNode whose index is wanted.
- * @param out                   The variable where the index of the @ref node will be stored.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ * @return                      The index of the @ref node in the @ref list.
  */
-ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out);
+size_t list_index_of(const List *list, const ListNode *node);
 
 /**
  * Retrieves the @ref ListNode at the @ref index.
@@ -299,7 +282,6 @@ ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out);
  * Requirements:
  *      -   @ref list != NULL
  *      -   @ref index < @ref list->size
- *      -   @ref out != NULL
  *
  * Time complexity:
  *      -   If front/back:
@@ -310,10 +292,9 @@ ListFuncStat list_index_of(const List *list, const ListNode *node, size_t *out);
  *
  * @param list                  The @ref List containing nodes.
  * @param index                 The index of the wanted @ref ListNode.
- * @param out                   The variable where the @ref ListNode at the @ref index will be stored.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
+ * @return                      The @ref ListNode at the @ref index in the @ref list.
  */
-ListFuncStat list_at(const List *list, size_t index, ListNode **out);
+ListNode* list_at(const List *list, size_t index);
 
 /**
  * Inserts the @ref new_node to the left of the @ref position. If @ref position == NULL, inserts the
@@ -329,9 +310,8 @@ ListFuncStat list_at(const List *list, size_t index, ListNode **out);
  * @param list                  The @ref List to be operated on.
  * @param new_node              The @ref ListNode to be inserted.
  * @param position              The @ref ListNode in the @ref list used as a reference point.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_insert_left(List *list, ListNode *new_node, ListNode *position);
+void list_insert_left(List *list, ListNode *new_node, ListNode *position);
 
 /**
  * Inserts the @ref new_node to the right of the @ref position. If @ref position == NULL, inserts the
@@ -347,9 +327,8 @@ ListFuncStat list_insert_left(List *list, ListNode *new_node, ListNode *position
  * @param list                  The @ref List to be operated on.
  * @param new_node              The @ref ListNode to be inserted.
  * @param position              The @ref ListNode in the @ref list used as a reference point.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_insert_right(List *list, ListNode *new_node, ListNode *position);
+void list_insert_right(List *list, ListNode *new_node, ListNode *position);
 
 /**
  * Inserts the @ref new_node into the front of the @ref list.
@@ -363,9 +342,8 @@ ListFuncStat list_insert_right(List *list, ListNode *new_node, ListNode *positio
  *
  * @param list                  The @ref List to be operated on.
  * @param new_node              The @ref ListNode to be inserted.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_insert_front(List *list, ListNode *new_node);
+void list_insert_front(List *list, ListNode *new_node);
 
 /**
  * Inserts the @ref new_node into the back of the @ref list.
@@ -379,9 +357,8 @@ ListFuncStat list_insert_front(List *list, ListNode *new_node);
  *
  * @param list                  The @ref List to be operated on.
  * @param new_node              The @ref ListNode to be inserted.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_insert_back(List *list, ListNode *new_node);
+void list_insert_back(List *list, ListNode *new_node);
 
 /**
  * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the @ref list to the left of
@@ -398,9 +375,8 @@ ListFuncStat list_insert_back(List *list, ListNode *new_node);
  * @param list                  The consumer @ref List to which elements are moved.
  * @param src_list              The producer @ref List from which elements are removed.
  * @param position              The @ref ListNode in the @ref list used as a reference point.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position);
+void list_splice_left(List *list, List *src_list, ListNode *position);
 
 /**
  * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the @ref list to the right of
@@ -417,9 +393,8 @@ ListFuncStat list_splice_left(List *list, List *src_list, ListNode *position);
  * @param list                  The consumer @ref List to which elements are moved.
  * @param src_list              The producer @ref List from which elements are removed.
  * @param position              The @ref ListNode in the @ref list used as a reference point.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position);
+void list_splice_right(List *list, List *src_list, ListNode *position);
 
 /**
  * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the front of the @ref list.
@@ -433,9 +408,8 @@ ListFuncStat list_splice_right(List *list, List *src_list, ListNode *position);
  *
  * @param list                  The consumer @ref List to which elements are moved.
  * @param src_list              The producer @ref List from which elements are removed.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_splice_front(List *list, List *src_list);
+void list_splice_front(List *list, List *src_list);
 
 /**
  * Removes all the @ref ListNode's in the @ref src_list, and inserts them into the back of the @ref list.
@@ -449,9 +423,8 @@ ListFuncStat list_splice_front(List *list, List *src_list);
  *
  * @param list                  The consumer @ref List to which elements are moved.
  * @param src_list              The producer @ref List from which elements are removed.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_splice_back(List *list, List *src_list);
+void list_splice_back(List *list, List *src_list);
 
 /**
  * Removes the @ref node from the @ref list. If @ref node == NULL, this function simply returns.
@@ -464,9 +437,8 @@ ListFuncStat list_splice_back(List *list, List *src_list);
  *
  * @param list                  The @ref List containing the @ref node to be removed.
  * @param node                  The @ref ListNode in the @ref list to be removed.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_remove(List *list, ListNode *node);
+void list_remove(List *list, ListNode *node);
 
 /**
  * Removes the front @ref ListNode from the @ref list. If the @ref list is empty, this function simply
@@ -479,9 +451,8 @@ ListFuncStat list_remove(List *list, ListNode *node);
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_remove_front(List *list);
+void list_remove_front(List *list);
 
 /**
  * Removes the back @ref ListNode from the @ref list. If the @ref list is empty, this function simply returns.
@@ -493,9 +464,8 @@ ListFuncStat list_remove_front(List *list);
  *      -   O(1)
  *
  * @param list                  The @ref List to be operated on.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_remove_back(List *list);
+void list_remove_back(List *list);
 
 /**
  * Removes all the nodes from the @ref list. If the @ref list is empty, this function simply returns.
@@ -507,9 +477,8 @@ ListFuncStat list_remove_back(List *list);
  *      -   O(1)
  *
  * @param list                  The @ref list to be operated on.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_remove_all(List *list);
+void list_remove_all(List *list);
 
 /**
  * This is a low-level function and should be used with care.
@@ -536,9 +505,8 @@ ListFuncStat list_remove_all(List *list);
  *                              range itself. It is up to the user to calculate the size of the range. This is
  *                              done because sometimes the size of the range is known without having to
  *                              iterate from the beginning to the end of the range.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_size);
+void list_cut(List *list, ListNode *from, ListNode *to, size_t range_size);
 
 /**
  * This is a low-level function and should be used with care.
@@ -567,9 +535,8 @@ ListFuncStat list_cut(List *list, ListNode *from, ListNode *to, size_t range_siz
  *                              range itself. It is up to the user to calculate the size of the range. This is
  *                              done because sometimes the size of the range is known without having to
  *                              iterate from the beginning to the end of the range.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size);
+void list_paste(List *list, ListNode *left, ListNode *from, ListNode *to, ListNode *right, size_t range_size);
 
 /**
  * Uses the merge sort algorithm to sort the @ref list in-place. This sort is stable (order of "equal"
@@ -585,9 +552,8 @@ ListFuncStat list_paste(List *list, ListNode *left, ListNode *from, ListNode *to
  *
  * @param list                  The @ref List to sort.
  * @param compare               The compare function to be used.
- * @return                      LIST_FUNC_STAT_OK if requirements are met, otherwise LIST_FUNC_STAT_ERROR.
  */
-ListFuncStat list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b));
+void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b));
 
 /* ========================================================================================================
  *
