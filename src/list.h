@@ -201,30 +201,30 @@ ListNode* list_front(const List *list);
 ListNode* list_back(const List *list);
 
 /**
- * Returns the @ref ListNode before the @ref node.
+ * Returns the @ref ListNode before the @ref node. NULL if @ref node == NULL.
  *
  * Requirements:
- *      -   @ref node != NULL.
+ *      -   None
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param node                  The @ref ListNode whose "prev" member will be returned.
- * @return                      @ref node->prev.
+ * @return                      NULL if @ref node == NULL; otherwise, @ref node->prev.
  */
 ListNode* list_prev(const ListNode *node);
 
 /**
- * Returns the @ref ListNode after the @ref node.
+ * Returns the @ref ListNode after the @ref node. NULL if @ref node == NULL.
  *
  * Requirements:
- *      -   @ref node != NULL.
+ *      -   None
  *
  * Time complexity:
  *      -   O(1)
  *
  * @param node                  The @ref ListNode whose "next" member will be returned.
- * @return                      @ref node->next.
+ * @return                      NULL if @ref node == NULL; otherwise, @ref node->next.
  */
 ListNode* list_next(const ListNode *node);
 

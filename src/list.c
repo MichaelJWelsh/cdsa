@@ -42,15 +42,11 @@ ListNode* list_back(const List *list) {
 }
 
 ListNode* list_prev(const ListNode *node) {
-    assert(node);
-
-    return node->prev;
+    return node ? node->prev : NULL;
 }
 
 ListNode* list_next(const ListNode *node) {
-    assert(node);
-
-    return node->next;
+    return node ? node->next : NULL;
 }
 
 size_t list_size(const List *list) {

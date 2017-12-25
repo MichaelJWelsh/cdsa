@@ -133,6 +133,8 @@ void test_list_back(void) {
 }
 
 void test_list_prev(void) {
+    assert(list_prev(NULL) == NULL);
+
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_prev(&var1.node) == NULL);
@@ -140,6 +142,8 @@ void test_list_prev(void) {
 }
 
 void test_list_next(void) {
+    assert(list_next(NULL) == NULL);
+
     list_insert_back(&list, &var1.node);
     list_insert_back(&list, &var2.node);
     assert(list_next(&var1.node) == &var2.node);
