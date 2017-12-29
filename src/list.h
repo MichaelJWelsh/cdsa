@@ -468,7 +468,8 @@ void list_remove_front(List *list);
 void list_remove_back(List *list);
 
 /**
- * Removes all the nodes from the @ref list. If the @ref list is empty, this function simply returns.
+ * Removes all the @ref ListNode's from the @ref list. If the @ref list is empty, this function simply
+ * returns.
  *
  * Requirements:
  *      -   @ref list != NULL
