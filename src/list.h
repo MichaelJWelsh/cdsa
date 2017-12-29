@@ -173,7 +173,7 @@ struct ListNode {
 void list_initialize(List *list);
 
 /**
- * Returns the front of the list.
+ * Returns the front of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
@@ -187,7 +187,7 @@ void list_initialize(List *list);
 ListNode* list_front(const List *list);
 
 /**
- * Returns the back of the list.
+ * Returns the back of the @ref list.
  *
  * Requirements:
  *      -   @ref list != NULL
