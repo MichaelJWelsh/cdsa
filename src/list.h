@@ -604,7 +604,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   @ref cursor_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
@@ -621,7 +622,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   The @ref cursor_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   The @ref cursor_node_ptr is neither reassigned nor removed from its associated @ref List in the
+ *          loop's body.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
  * @param list_ptr              The pointer to a @ref List that will be iterated over.
@@ -639,7 +641,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
@@ -663,7 +666,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  *
  * Requirements:
  *      -   @ref list_ptr != NULL
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor.
@@ -720,7 +724,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "next" member will
@@ -743,7 +748,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * against reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. If not NULL, its "prev" member will
@@ -800,7 +806,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
@@ -822,7 +829,8 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * against reassignment and/or removal of the @ref cursor_node_ptr.
  *
  * Requirements:
- *      -   @ref backup_node_ptr is neither reassigned nor removed from the @ref list in the loop's body.
+ *      -   @ref backup_node_ptr is neither reassigned nor removed from its associated @ref List in the loop's
+ *          body.
  *      -   @ref backup_node_ptr and @ref cursor_node_ptr are not the same variable.
  *
  * @param cursor_node_ptr       The @ref ListNode to use as a loop cursor. Its value represents the current
