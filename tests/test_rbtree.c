@@ -409,7 +409,7 @@ void test_rbtree_initialize(void) {
     ASSERT_RBTREE(rbtree_init_with_macro, NULL, 0);
     assert(rbtree_init_with_macro.compare == compare_func);
     assert(rbtree_init_with_macro.collide == collide_func);
-    ASSERT_NODE(node_init_with_macro, NULL, NULL, NULL, RBTREE_NODE_RED);
+    ASSERT_NODE(node_init_with_macro, RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED);
 
     rbtree_initialize(&rbtree, compare_func, collide_func);
     ASSERT_RBTREE(rbtree, NULL, 0);

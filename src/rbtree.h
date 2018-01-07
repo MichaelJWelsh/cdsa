@@ -480,7 +480,7 @@ void rbtree_remove_all(RBTree *rbtree);
  * Initializing a @ref RBTreeNode before it is used is NOT required. This macro is simply for allowing you to
  * initialize a struct (containing one or more @ref RBTreeNode's) with an initializer-list conveniently.
  */
-#define RBTREE_NODE_INITIALIZER { NULL, NULL, NULL, RBTREE_NODE_RED }
+#define RBTREE_NODE_INITIALIZER { RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED }
 
 /**
  * Obtains the pointer to the struct for this entry.
