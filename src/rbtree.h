@@ -473,6 +473,11 @@ void rbtree_remove_all(RBTree *rbtree);
 
 /**
  * Used for initializing a @ref RBTree. Alternatively you can call @ref rbtree_initialize.
+ *
+ * @param compare_func          The callback function used to compare a key with the key of a @ref RBTreeNode.
+ * @param collide_func          The OPTIONAL (i.e. can be NULL) callback function used to handle key
+ *                              collisions. If non-NULL, @ref collide will be called before the old
+ *                              @ref RBTreeNode is replaced by the new @ref RBTreeNode.
  */
 #define RBTREE_INITIALIZER(compare_func, collide_func) { (compare_func), (collide_func), NULL, 0 }
 
