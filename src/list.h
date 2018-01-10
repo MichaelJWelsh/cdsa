@@ -590,6 +590,9 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
 /**
  * Obtains the pointer to the struct for this entry.
  *
+ * Requirements:
+ *      -   @ref node_ptr != NULL
+ *
  * @param node_ptr              The pointer to the @ref ListNode in the struct.
  * @param type                  The type of the struct the @ref ListNode is embedded in.
  * @param member                The name of the @ref ListNode in the struct.

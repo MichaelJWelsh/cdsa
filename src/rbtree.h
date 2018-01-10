@@ -474,6 +474,9 @@ void rbtree_remove_all(RBTree *rbtree);
 /**
  * Used for initializing a @ref RBTree. Alternatively you can call @ref rbtree_initialize.
  *
+ * Requirements:
+ *      -   @ref compare_func != NULL
+ *
  * @param compare_func          The callback function used to compare a key with the key of a @ref RBTreeNode.
  * @param collide_func          The OPTIONAL (i.e. can be NULL) callback function used to handle key
  *                              collisions. If non-NULL, @ref collide will be called before the old
@@ -489,6 +492,9 @@ void rbtree_remove_all(RBTree *rbtree);
 
 /**
  * Obtains the pointer to the struct for this entry.
+ *
+ * Requirements:
+ *      -   @ref node_ptr != NULL
  *
  * @param node_ptr              The pointer to the @ref RBTreeNode in the struct.
  * @param type                  The type of the struct the @ref RBTreeNode is embedded in.
