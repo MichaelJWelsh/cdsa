@@ -21,7 +21,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "list.h"
 
-void list_initialize(List *list) {
+void list_init(List *list) {
     assert(list);
 
     list->head = NULL;

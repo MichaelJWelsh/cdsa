@@ -352,7 +352,7 @@ static void collide_func(const RBTreeNode *old_node, const RBTreeNode *new_node)
 }
 
 static void reset_globals() {
-    rbtree_initialize(&rbtree, compare_func, collide_func);
+    rbtree_init(&rbtree, compare_func, collide_func);
 
     var1.key = 1;
     var1.num_similar_keys = 0;
@@ -403,15 +403,15 @@ static void reset_globals() {
  *
  * ======================================================================================================== */
 
-void test_rbtree_initialize(void) {
-    RBTreeNode node_init_with_macro = RBTREE_NODE_INITIALIZER;
+void test_rbtree_init(void) {
+    RBTreeNode node_init_with_macro = RBTREE_NODE_INIT;
     ASSERT_NODE(node_init_with_macro, RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED);
 
-    rbtree_initialize(&rbtree, compare_func, collide_func);
+    rbtree_init(&rbtree, compare_func, collide_func);
     ASSERT_RBTREE(rbtree, NULL, 0);
     assert(rbtree.compare == compare_func);
     assert(rbtree.collide == collide_func);
-    rbtree_initialize(&rbtree, compare_func, NULL);
+    rbtree_init(&rbtree, compare_func, NULL);
     ASSERT_RBTREE(rbtree, NULL, 0);
     assert(rbtree.compare == compare_func);
     assert(rbtree.collide == NULL);
@@ -1692,7 +1692,7 @@ void test_rbtree_for_each_safe_from_reverse(void) {
 }
 
 TestFunc test_funcs[] = {
-    test_rbtree_initialize,
+    test_rbtree_init,
     test_rbtree_first,
     test_rbtree_last,
     test_rbtree_prev,

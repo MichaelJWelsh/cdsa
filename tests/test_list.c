@@ -80,8 +80,8 @@ List list, other_list;
     } while (0)
 
 static void reset_globals() {
-    list_initialize(&list);
-    list_initialize(&other_list);
+    list_init(&list);
+    list_init(&other_list);
 
     var1.val = 1;
     var1.node.prev = LIST_POISON_PREV;
@@ -110,11 +110,11 @@ static void reset_globals() {
  *
  * ======================================================================================================== */
 
-void test_list_initialize(void) {
-    ListNode node_init_with_macro = LIST_NODE_INITIALIZER;
+void test_list_init(void) {
+    ListNode node_init_with_macro = LIST_NODE_INIT;
     ASSERT_NODE(node_init_with_macro, LIST_POISON_PREV, LIST_POISON_NEXT);
 
-    list_initialize(&list);
+    list_init(&list);
     ASSERT_LIST(list, NULL, NULL, 0);
 }
 
@@ -704,7 +704,7 @@ void test_list_for_each_safe_from_reverse(void) {
 }
 
 TestFunc test_funcs[] = {
-    test_list_initialize,
+    test_list_init,
     test_list_front,
     test_list_back,
     test_list_prev,

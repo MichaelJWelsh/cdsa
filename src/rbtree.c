@@ -385,7 +385,7 @@ static void repair_after_remove(RBTree *rbtree, RBTreeNode *node) {
  *
  * ======================================================================================================== */
 
-void rbtree_initialize(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node)) {
+void rbtree_init(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node)) {
     assert(rbtree && compare);
 
     rbtree->compare = compare;

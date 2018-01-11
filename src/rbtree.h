@@ -49,7 +49,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *              obj.key = 1;
  *
- *              rbtree_initialize(&rbtree, compare, NULL);
+ *              rbtree_init(&rbtree, compare, NULL);
  *              rbtree_insert(&rbtree, &obj.key, &obj.n);
  *
  *              obj.val = 1000;
@@ -73,7 +73,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *      ====  FUNCTIONS  ====
  *      Initializers:
- *          -   rbtree_initialize
+ *          -   rbtree_init
  *      Properties:
  *          -   rbtree_first
  *          -   rbtree_last
@@ -102,7 +102,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *          -   RBTREE_POISON_LEFT_CHILD
  *          -   RBTREE_POISON_RIGHT_CHILD
  *      Convenient Node Initializer:
- *          -   RBTREE_NODE_INITIALIZER
+ *          -   RBTREE_NODE_INIT
  *      Properties:
  *          -   rbtree_entry
  *      Traversal:
@@ -193,7 +193,7 @@ struct RBTreeNode {
  *                              collisions. If non-NULL, @ref collide will be called before the old
  *                              @ref RBTreeNode is replaced by the new @ref RBTreeNode.
  */
-void rbtree_initialize(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node));
+void rbtree_init(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node));
 
 /**
  * Returns the first inorder @ref RBTreeNode of the @ref rbtree.
@@ -474,7 +474,7 @@ void rbtree_remove_all(RBTree *rbtree);
  * Initializing a @ref RBTreeNode before it is used is NOT required. This macro is simply for allowing you to
  * initialize a struct (containing one or more @ref RBTreeNode's) with an initializer-list conveniently.
  */
-#define RBTREE_NODE_INITIALIZER { RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED }
+#define RBTREE_NODE_INIT { RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED }
 
 /**
  * Obtains the pointer to the struct for this entry.

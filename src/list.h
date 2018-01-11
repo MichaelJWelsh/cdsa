@@ -36,7 +36,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *              List list;
  *              int copy_val;
  *
- *              list_initialize(&list);
+ *              list_init(&list);
  *              list_insert_back(&list, &obj.n);
  *
  *              obj.val = 5;
@@ -57,7 +57,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *      ====  FUNCTIONS  ====
  *      Initializers:
- *          -   list_initialize
+ *          -   list_init
  *      Properties:
  *          -   list_front
  *          -   list_back
@@ -94,7 +94,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *          -   LIST_POISON_PREV
  *          -   LIST_POISON_NEXT
  *      Convenient Node Initializer:
- *          -   LIST_NODE_INITIALIZER
+ *          -   LIST_NODE_INIT
  *      Properties:
  *          -   list_entry
  *      Traversal:
@@ -169,7 +169,7 @@ struct ListNode {
  *
  * @param list                  The @ref List to be initialized/reset.
  */
-void list_initialize(List *list);
+void list_init(List *list);
 
 /**
  * Returns the front of the @ref list.
@@ -579,7 +579,7 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * Initializing a @ref ListNode before it is used is NOT required. This macro is simply for allowing you to
  * initialize a struct (containing one or more @ref ListNode's) with an initializer-list conveniently.
  */
-#define LIST_NODE_INITIALIZER { LIST_POISON_PREV, LIST_POISON_NEXT }
+#define LIST_NODE_INIT { LIST_POISON_PREV, LIST_POISON_NEXT }
 
 /**
  * Obtains the pointer to the struct for this entry.
