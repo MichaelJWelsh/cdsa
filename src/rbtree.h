@@ -101,8 +101,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *          -   RBTREE_POISON_PARENT
  *          -   RBTREE_POISON_LEFT_CHILD
  *          -   RBTREE_POISON_RIGHT_CHILD
- *      Initializers:
- *          -   RBTREE_INITIALIZER
+ *      Convenient Node Initializer:
  *          -   RBTREE_NODE_INITIALIZER
  *      Properties:
  *          -   rbtree_entry
@@ -470,19 +469,6 @@ void rbtree_remove_all(RBTree *rbtree);
  * Useful for identifying bugs.
  */
 #define RBTREE_POISON_RIGHT_CHILD ((RBTreeNode*) 0x300)
-
-/**
- * Used for initializing a @ref RBTree. Alternatively you can call @ref rbtree_initialize.
- *
- * Requirements:
- *      -   @ref compare_func != NULL
- *
- * @param compare_func          The callback function used to compare a key with the key of a @ref RBTreeNode.
- * @param collide_func          The OPTIONAL (i.e. can be NULL) callback function used to handle key
- *                              collisions. If non-NULL, @ref collide will be called before the old
- *                              @ref RBTreeNode is replaced by the new @ref RBTreeNode.
- */
-#define RBTREE_INITIALIZER(compare_func, collide_func) { (compare_func), (collide_func), NULL, 0 }
 
 /**
  * Initializing a @ref RBTreeNode before it is used is NOT required. This macro is simply for allowing you to

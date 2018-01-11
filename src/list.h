@@ -93,8 +93,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      Constants:
  *          -   LIST_POISON_PREV
  *          -   LIST_POISON_NEXT
- *      Initializers:
- *          -   LIST_INITIALIZER
+ *      Convenient Node Initializer:
  *          -   LIST_NODE_INITIALIZER
  *      Properties:
  *          -   list_entry
@@ -575,11 +574,6 @@ void list_sort(List *list, int (*compare)(const ListNode *a, const ListNode *b))
  * identifying bugs.
  */
 #define LIST_POISON_NEXT ((ListNode*) 0x200)
-
-/**
- * Used for initializing a @ref List. Alternatively you can call @ref list_initialize.
- */
-#define LIST_INITIALIZER { NULL, NULL, 0 }
 
 /**
  * Initializing a @ref ListNode before it is used is NOT required. This macro is simply for allowing you to

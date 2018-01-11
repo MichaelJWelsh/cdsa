@@ -404,11 +404,7 @@ static void reset_globals() {
  * ======================================================================================================== */
 
 void test_rbtree_initialize(void) {
-    RBTree rbtree_init_with_macro = RBTREE_INITIALIZER(compare_func, collide_func);
     RBTreeNode node_init_with_macro = RBTREE_NODE_INITIALIZER;
-    ASSERT_RBTREE(rbtree_init_with_macro, NULL, 0);
-    assert(rbtree_init_with_macro.compare == compare_func);
-    assert(rbtree_init_with_macro.collide == collide_func);
     ASSERT_NODE(node_init_with_macro, RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED);
 
     rbtree_initialize(&rbtree, compare_func, collide_func);

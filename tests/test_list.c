@@ -111,9 +111,7 @@ static void reset_globals() {
  * ======================================================================================================== */
 
 void test_list_initialize(void) {
-    List list_init_with_macro = LIST_INITIALIZER;
     ListNode node_init_with_macro = LIST_NODE_INITIALIZER;
-    ASSERT_LIST(list_init_with_macro, NULL, NULL, 0);
     ASSERT_NODE(node_init_with_macro, LIST_POISON_PREV, LIST_POISON_NEXT);
 
     list_initialize(&list);
