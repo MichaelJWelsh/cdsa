@@ -396,7 +396,7 @@ void rbtree_remove(RBTree *rbtree, RBTreeNode *node);
  * Time complexity:
  *      -   O(log(n))
  *
- * @param rbtree                The @ref rbtree to be operated on.
+ * @param rbtree                The @ref RBTree to be operated on.
  * @param key                   The key used for lookup.
  */
 void rbtree_remove_key(RBTree *rbtree, const void *key);
@@ -411,7 +411,7 @@ void rbtree_remove_key(RBTree *rbtree, const void *key);
  * Time complexity:
  *      -   O(log(n))
  *
- * @param rbtree                The @ref rbtree to be operated on.
+ * @param rbtree                The @ref RBTree to be operated on.
  */
 void rbtree_remove_first(RBTree *rbtree);
 
@@ -425,7 +425,7 @@ void rbtree_remove_first(RBTree *rbtree);
  * Time complexity:
  *      -   O(log(n))
  *
- * @param rbtree                The @ref rbtree to be operated on.
+ * @param rbtree                The @ref RBTree to be operated on.
  */
 void rbtree_remove_last(RBTree *rbtree);
 
@@ -439,7 +439,7 @@ void rbtree_remove_last(RBTree *rbtree);
  * Time complexity:
  *      -   O(1)
  *
- * @param rbtree                The @ref rbtree to be operated on.
+ * @param rbtree                The @ref RBTree to be operated on.
  */
 void rbtree_remove_all(RBTree *rbtree);
 
