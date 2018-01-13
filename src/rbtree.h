@@ -203,7 +203,7 @@ struct RBTreeNode {
  *                              the @ref collide callback function is non-NULL. This data is NEVER manipulated
  *                              by the @ref rbtree. This data is user-defined. For example, this data could be
  *                              a memory pool object that is used for freeing up resources held by the old
- *                              @ref RBTreeNode in the @ref collide function.
+ *                              @ref RBTreeNode in the @ref collide callback function.
  */
 void rbtree_init(
     RBTree *rbtree,
