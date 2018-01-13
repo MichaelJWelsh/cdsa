@@ -26,10 +26,13 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * @ref RBTreeNode should belong to at most ONE @ref RBTree. The user is required to define a compare function
  * which compares a key with the key of a @ref RBTreeNode. When a @ref RBTreeNode is inserted with a
  * non-unique (an already existing) key, the old @ref RBTreeNode will be discarded and the new @ref RBTreeNode
- * will take its place. The user can OPTIONALLY define a collide function which is called before the old
- * @ref RBTreeNode is replaced. The collide function is called with two arguments, the old @ref RBTreeNode,
- * and the new @ref RBTreeNode. The collide function can be used for conveniently freeing up resources held by
- * the old @ref RBTreeNode, giving the @ref RBTree multi-key functionality, etc.
+ * will take its place. The user can OPTIONALLY define a collide function which is called after the old
+ * @ref RBTreeNode is replaced. The collide function is called with three arguments, the old @ref RBTreeNode,
+ * the new @ref RBTreeNode, and the auxiliary data that was stored in the @ref RBTree during initialization.
+ * The collide function can be used for conveniently freeing up resources held by the old @ref RBTreeNode,
+ * giving the @ref RBTree multi-key functionality, etc. Note that the auxiliary data is NEVER manipulated by
+ * the @ref RBTree. This data is user-defined. This data, for example, could be a memory pool object that is
+ * used for freeing up resources held by the old @ref RBTreeNode in the collide function.
  *
  * Example:
  *          struct Object {
@@ -49,7 +52,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *              obj.key = 1;
  *
- *              rbtree_init(&rbtree, compare, NULL);
+ *              rbtree_init(&rbtree, compare, NULL, NULL);
  *              rbtree_insert(&rbtree, &obj.key, &obj.n);
  *
  *              obj.val = 1000;
@@ -148,7 +151,8 @@ typedef struct RBTreeNode RBTreeNode;
  */
 struct RBTree {
     int (*compare)(const void *key, const RBTreeNode *node);
-    void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node);
+    void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node, void *auxiliary_data);
+    void *auxiliary_data;
     RBTreeNode *root;
     size_t size;
 };
@@ -190,10 +194,20 @@ struct RBTreeNode {
  * @param rbtree                The @ref RBTree to be initialized/reset.
  * @param compare               The callback function used to compare a key with the key of a @ref RBTreeNode.
  * @param collide               The OPTIONAL (i.e. can be NULL) callback function used to handle key
- *                              collisions. If non-NULL, @ref collide will be called before the old
+ *                              collisions. If non-NULL, @ref collide will be called after the old
  *                              @ref RBTreeNode is replaced by the new @ref RBTreeNode.
+ * @param auxiliary_data        The auxiliary data passed to the OPTIONAL @ref collide callback function if
+ *                              the @ref collide callback function is non-NULL. This data is NEVER manipulated
+ *                              by the @ref rbtree. This data is user-defined. For example, this data might be
+ *                              a memory pool object that is used for freeing up the old @ref RBTreeNode in
+ *                              the @ref collide callback function.
  */
-void rbtree_init(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node));
+void rbtree_init(
+    RBTree *rbtree,
+    int (*compare)(const void *key, const RBTreeNode *node),
+    void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node, void *auxiliary_data),
+    void *auxiliary_data
+);
 
 /**
  * Returns the first inorder @ref RBTreeNode of the @ref rbtree.
@@ -339,8 +353,8 @@ RBTreeNode* rbtree_at(const RBTree *rbtree, size_t index);
 
 /**
  * Inserts the @ref node with associated @ref key into the @ref rbtree. If a @ref RBTreeNode already exists
- * with the same @ref key, the @ref rbtree->collide function will be called (if non-NULL), and then the
- * already existing @ref RBTreeNode will be replaced by the new @ref RBTreeNode.
+ * with the same @ref key, the already existing @ref RBTreeNode will be replaced by the new @ref RBTreeNode,
+ * and then the @ref rbtree->collide function will be called (if non-NULL).
  *
  * Requirements:
  *      -   @ref rbtree != NULL

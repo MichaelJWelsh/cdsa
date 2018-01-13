@@ -79,7 +79,7 @@ List list, other_list;
         } \
     } while (0)
 
-static void reset_globals() {
+static void reset_globals(void) {
     list_init(&list);
     list_init(&other_list);
 

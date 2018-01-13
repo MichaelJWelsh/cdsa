@@ -385,11 +385,17 @@ static void repair_after_remove(RBTree *rbtree, RBTreeNode *node) {
  *
  * ======================================================================================================== */
 
-void rbtree_init(RBTree *rbtree, int (*compare)(const void *key, const RBTreeNode *node), void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node)) {
+void rbtree_init(
+    RBTree *rbtree,
+    int (*compare)(const void *key, const RBTreeNode *node),
+    void (*collide)(const RBTreeNode *old_node, const RBTreeNode *new_node, void *auxiliary_data),
+    void *auxiliary_data
+) {
     assert(rbtree && compare);
 
     rbtree->compare = compare;
     rbtree->collide = collide;
+    rbtree->auxiliary_data = auxiliary_data;
     rbtree->root = NULL;
     rbtree->size = 0;
 }
@@ -572,11 +578,11 @@ void rbtree_insert(RBTree *rbtree, const void *key, RBTreeNode *node) {
                     break;
                 }
             } else {
-                if (rbtree->collide) {
-                    rbtree->collide(n, node);
-                }
-
                 replace(rbtree, n, node);
+
+                if (rbtree->collide) {
+                    rbtree->collide(n, node, rbtree->auxiliary_data);
+                }
 
                 return;
             }

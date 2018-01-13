@@ -44,6 +44,7 @@ typedef struct TestStruct {
 TestStruct var1, var2, var3, var4, var5, var6, var7;
 RBTree rbtree;
 size_t counter;
+void *aux_ptr;
 
 #define ASSERT_RBTREE(rbtree, root_ptr, size_of_rbtree) \
     do { \
@@ -53,10 +54,10 @@ size_t counter;
 
 #define ASSERT_NODE(node, parent_ptr, left_child_ptr, right_child_ptr, node_color) \
     do { \
-        assert(node.parent == (RBTreeNode*) (parent_ptr)); \
-        assert(node.left_child == (RBTreeNode*) (left_child_ptr)); \
-        assert(node.right_child == (RBTreeNode*) (right_child_ptr)); \
-        assert(node.color == node_color); \
+        assert((node).parent == (RBTreeNode*) (parent_ptr)); \
+        assert((node).left_child == (RBTreeNode*) (left_child_ptr)); \
+        assert((node).right_child == (RBTreeNode*) (right_child_ptr)); \
+        assert((node).color == node_color); \
     } while (0)
 
 #define ASSERT_INORDERNESS(rbtree) \
@@ -347,12 +348,15 @@ static int compare_func(const void *key, const RBTreeNode *node) {
     return *(const int*)key - rbtree_entry(node, TestStruct, node)->key;
 }
 
-static void collide_func(const RBTreeNode *old_node, const RBTreeNode *new_node) {
+static void collide_func(const RBTreeNode *old_node, const RBTreeNode *new_node, void *auxiliary_data) {
+    ASSERT_NODE(*old_node, RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, old_node->color);
+    assert((void**) auxiliary_data == &aux_ptr);
+
     rbtree_entry(new_node, TestStruct, node)->num_similar_keys += 1 + rbtree_entry(old_node, TestStruct, node)->num_similar_keys;
 }
 
-static void reset_globals() {
-    rbtree_init(&rbtree, compare_func, collide_func);
+static void reset_globals(void) {
+    rbtree_init(&rbtree, compare_func, collide_func, &aux_ptr);
 
     var1.key = 1;
     var1.num_similar_keys = 0;
@@ -407,14 +411,16 @@ void test_rbtree_init(void) {
     RBTreeNode node_init_with_macro = RBTREE_NODE_INIT;
     ASSERT_NODE(node_init_with_macro, RBTREE_POISON_PARENT, RBTREE_POISON_LEFT_CHILD, RBTREE_POISON_RIGHT_CHILD, RBTREE_NODE_RED);
 
-    rbtree_init(&rbtree, compare_func, collide_func);
+    rbtree_init(&rbtree, compare_func, collide_func, &aux_ptr);
     ASSERT_RBTREE(rbtree, NULL, 0);
     assert(rbtree.compare == compare_func);
     assert(rbtree.collide == collide_func);
-    rbtree_init(&rbtree, compare_func, NULL);
+    assert((void**) rbtree.auxiliary_data == &aux_ptr);
+    rbtree_init(&rbtree, compare_func, NULL, NULL);
     ASSERT_RBTREE(rbtree, NULL, 0);
     assert(rbtree.compare == compare_func);
     assert(rbtree.collide == NULL);
+    assert(rbtree.auxiliary_data == NULL);
 }
 
 void test_rbtree_first(void) {
