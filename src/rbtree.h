@@ -23,16 +23,19 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * Embed one or more @ref RBTreeNode's into your struct to make it a potential node in one or more red-black
  * trees. The @ref RBTree structure keeps track of a tree of @ref RBTreeNode's. A @ref RBTree MUST be
  * initialized before it is used. A @ref RBTreeNode does NOT need to be initialized before it is used. A
- * @ref RBTreeNode should belong to at most ONE @ref RBTree. The user is required to define a compare function
- * which compares a key with the key of a @ref RBTreeNode. When a @ref RBTreeNode is inserted with a
- * non-unique (an already existing) key, the old @ref RBTreeNode will be discarded and the new @ref RBTreeNode
- * will take its place. The user can OPTIONALLY define a collide function which is called after the old
- * @ref RBTreeNode is replaced. The collide function is called with three arguments, the old @ref RBTreeNode,
- * the new @ref RBTreeNode, and the auxiliary data that was stored in the @ref RBTree during initialization.
- * The collide function can be used for conveniently freeing up resources held by the old @ref RBTreeNode,
- * giving the @ref RBTree multi-key functionality, etc. Note that the auxiliary data is NEVER manipulated by
- * the @ref RBTree. This data is user-defined. This data, for example, could be a memory pool object that is
- * used for freeing up resources held by the old @ref RBTreeNode in the collide function.
+ * @ref RBTreeNode should belong to at most ONE @ref RBTree.
+ *
+ * The user is required to define a compare function which compares a key with the key of a @ref RBTreeNode.
+ * When a @ref RBTreeNode is inserted with a non-unique (an already existing) key, the old @ref RBTreeNode
+ * will be discarded and the new @ref RBTreeNode will take its place.
+ *
+ * The user can OPTIONALLY define a collide function which is called after the old @ref RBTreeNode is
+ * replaced. The collide function is called with three arguments, the old @ref RBTreeNode, the new
+ * @ref RBTreeNode, and the auxiliary data that was stored in the @ref RBTree during initialization. The
+ * collide function can be used for conveniently freeing up resources held by the old @ref RBTreeNode, giving
+ * the @ref RBTree multi-key functionality, etc. Note that the auxiliary data is NEVER manipulated by the
+ * @ref RBTree. This data is user-defined. This data, for example, could be a memory pool object that is used
+ * for freeing up resources held by the old @ref RBTreeNode in the collide function.
  *
  * Example:
  *          struct Object {
@@ -198,9 +201,9 @@ struct RBTreeNode {
  *                              @ref RBTreeNode is replaced by the new @ref RBTreeNode.
  * @param auxiliary_data        The auxiliary data passed to the OPTIONAL @ref collide callback function if
  *                              the @ref collide callback function is non-NULL. This data is NEVER manipulated
- *                              by the @ref rbtree. This data is user-defined. For example, this data might be
- *                              a memory pool object that is used for freeing up the old @ref RBTreeNode in
- *                              the @ref collide callback function.
+ *                              by the @ref rbtree. This data is user-defined. For example, this data could be
+ *                              a memory pool object that is used for freeing up resources held by the old
+ *                              @ref RBTreeNode in the @ref collide function.
  */
 void rbtree_init(
     RBTree *rbtree,
