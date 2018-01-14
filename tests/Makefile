@@ -4,7 +4,7 @@ C_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c89
 CPP_COMPILER=g++
 CPP_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c++11
 
-all: test_list test_rbtree
+all: test_list test_rbtree test_hashtable
 
 test_list:
 	$(C_COMPILER) test_list.c ../src/list.c -o test_list $(C_FLAGS)
@@ -21,3 +21,11 @@ test_rbtree:
 	$(CPP_COMPILER) test_rbtree.c ../src/rbtree.c -o test_rbtree $(CPP_FLAGS)
 	./test_rbtree C++11
 	rm -f test_rbtree
+
+test_hashtable:
+	$(C_COMPILER) test_hashtable.c ../src/hashtable.c -o test_hashtable $(C_FLAGS)
+	./test_hashtable C89
+	rm -f test_hashtable
+	$(CPP_COMPILER) test_hashtable.c ../src/hashtable.c -o test_hashtable $(CPP_FLAGS)
+	./test_hashtable C++11
+	rm -f test_hashtable
