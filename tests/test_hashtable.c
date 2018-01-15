@@ -61,10 +61,9 @@ void *aux_ptr;
         } \
     } while (0)
 
-#define ASSERT_NODE(node, next_ptr, bucket_ptr) \
+#define ASSERT_NODE(node, next_ptr) \
     do { \
         assert((node).next == (HashTableNode*) (next_ptr)); \
-        assert((node).bucket == (HashTableNode**) (bucket_ptr)); \
     } while (0)
 
 #define ASSERT_BUCKET_ARRAY_NULLIFIED() \
@@ -100,6 +99,9 @@ void *aux_ptr;
                 assert(0); \
         } \
     } while (0)
+
+#define HASHTABLE_REMOVE_KEY_BY_NODE(hashtable_ptr, node_ptr) \
+    hashtable_remove_key(hashtable_ptr, &hashtable_entry(node_ptr, TestStruct, node)->key)
 
 #define POISON_BUCKET_ARRAY() \
     do { \
@@ -194,22 +196,22 @@ void *aux_ptr;
             \
             switch (x + 1) { \
                 case 1: \
-                    hashtable_remove(&hashtable, &var1.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var1.node); \
                     break; \
                 case 2: \
-                    hashtable_remove(&hashtable, &var2.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node); \
                     break; \
                 case 3: \
-                    hashtable_remove(&hashtable, &var3.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node); \
                     break; \
                 case 4: \
-                    hashtable_remove(&hashtable, &var4.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node); \
                     break; \
                 case 5: \
-                    hashtable_remove(&hashtable, &var5.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var5.node); \
                     break; \
                 case 6: \
-                    hashtable_remove(&hashtable, &var6.node); \
+                    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var6.node); \
                     break; \
                 default: \
                     assert(0); \
@@ -239,7 +241,7 @@ static int equal_func(const void *key, const HashTableNode *node) {
 }
 
 static void collide_func(const HashTableNode *old_node, const HashTableNode *new_node, void *auxiliary_data) {
-    ASSERT_NODE(*old_node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
+    ASSERT_NODE(*old_node, HASHTABLE_POISON_NEXT);
     assert((void**) auxiliary_data == &aux_ptr);
 
     hashtable_entry(new_node, TestStruct, node)->num_similar_keys += 1 + hashtable_entry(old_node, TestStruct, node)->num_similar_keys;
@@ -251,32 +253,26 @@ static void reset_globals(void) {
     var1.key = 1;
     var1.num_similar_keys = 0;
     var1.node.next = HASHTABLE_POISON_NEXT;
-    var1.node.bucket = HASHTABLE_POISON_BUCKET;
 
     var2.key = 2;
     var2.num_similar_keys = 0;
     var2.node.next = HASHTABLE_POISON_NEXT;
-    var2.node.bucket = HASHTABLE_POISON_BUCKET;
 
     var3.key = 3;
     var3.num_similar_keys = 0;
     var3.node.next = HASHTABLE_POISON_NEXT;
-    var3.node.bucket = HASHTABLE_POISON_BUCKET;
 
     var4.key = 4;
     var4.num_similar_keys = 0;
     var4.node.next = HASHTABLE_POISON_NEXT;
-    var4.node.bucket = HASHTABLE_POISON_BUCKET;
 
     var5.key = 5;
     var5.num_similar_keys = 0;
     var5.node.next = HASHTABLE_POISON_NEXT;
-    var5.node.bucket = HASHTABLE_POISON_BUCKET;
 
     var6.key = 6;
     var6.num_similar_keys = 0;
     var6.node.next = HASHTABLE_POISON_NEXT;
-    var6.node.bucket = HASHTABLE_POISON_BUCKET;
 }
 
 /* ========================================================================================================
@@ -287,7 +283,7 @@ static void reset_globals(void) {
 
 void test_hashtable_init(void) {
     HashTableNode node_init_with_macro = HASHTABLE_NODE_INIT;
-    ASSERT_NODE(node_init_with_macro, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
+    ASSERT_NODE(node_init_with_macro, HASHTABLE_POISON_NEXT);
 
     POISON_BUCKET_ARRAY();
     hashtable_init(&hashtable, bkt_arr, 3, hash_func, equal_func, collide_func, &aux_ptr);
@@ -345,7 +341,7 @@ void test_hashtable_num_buckets(void) {
 
     hashtable_insert(&hashtable, &var1.key, &var1.node);
     assert(hashtable_num_buckets(&hashtable) == 3);
-    hashtable_remove(&hashtable, &var1.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var1.node);
     assert(hashtable_num_buckets(&hashtable) == 3);
     hashtable.num_buckets = 0;
     assert(hashtable_num_buckets(&hashtable) == 0);
@@ -371,11 +367,11 @@ void test_hashtable_size(void) {
     var4.key = var1.key;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     assert(hashtable_size(&hashtable) == 3);
-    hashtable_remove(&hashtable, &var3.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node);
     assert(hashtable_size(&hashtable) == 2);
-    hashtable_remove(&hashtable, &var2.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node);
     assert(hashtable_size(&hashtable) == 1);
-    hashtable_remove(&hashtable, &var4.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node);
     assert(hashtable_size(&hashtable) == 0);
     reset_globals();
 
@@ -399,11 +395,11 @@ void test_hashtable_empty(void) {
     var4.key = var1.key;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     assert(hashtable_empty(&hashtable) == 0);
-    hashtable_remove(&hashtable, &var3.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node);
     assert(hashtable_empty(&hashtable) == 0);
-    hashtable_remove(&hashtable, &var2.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node);
     assert(hashtable_empty(&hashtable) == 0);
-    hashtable_remove(&hashtable, &var4.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node);
     assert(hashtable_empty(&hashtable) == 1);
     reset_globals();
 
@@ -427,11 +423,11 @@ void test_hashtable_contains_key(void) {
     var4.key = var1.key;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     assert(hashtable_contains_key(&hashtable, &var4.key) == 1);
-    hashtable_remove(&hashtable, &var3.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node);
     assert(hashtable_contains_key(&hashtable, &var3.key) == 0);
-    hashtable_remove(&hashtable, &var2.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node);
     assert(hashtable_contains_key(&hashtable, &var2.key) == 0);
-    hashtable_remove(&hashtable, &var4.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node);
     assert(hashtable_contains_key(&hashtable, &var4.key) == 0);
     reset_globals();
 
@@ -458,102 +454,102 @@ void test_hashtable_insert(void) {
     hashtable.collide = NULL;
     hashtable_insert(&hashtable, &var1.key, &var1.node);
     ASSERT_HASHTABLE(hashtable, 1);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
+    ASSERT_NODE(var1.node, NULL);
     hashtable_insert(&hashtable, &var2.key, &var2.node);
     ASSERT_HASHTABLE(hashtable, 2);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
     hashtable_insert(&hashtable, &var3.key, &var3.node);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
+    ASSERT_NODE(var3.node, NULL);
     var4.key = var1.key;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var1.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var2.node, &var4.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 0);
+    ASSERT_NODE(var1.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var2.node, &var4.node);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, NULL);
     hashtable_insert(&hashtable, &var1.key, &var1.node);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, HASHTABLE_POISON_NEXT);
     var4.key = 4;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     ASSERT_HASHTABLE(hashtable, 4);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, &var3.node, bkt_arr + 1);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, &var3.node);
     hashtable_insert(&hashtable, &var5.key, &var5.node);
     ASSERT_HASHTABLE(hashtable, 5);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, &var3.node, bkt_arr + 1);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, &var3.node);
+    ASSERT_NODE(var5.node, NULL);
     hashtable_insert(&hashtable, &var6.key, &var6.node);
     ASSERT_HASHTABLE(hashtable, 6);
-    ASSERT_NODE(var1.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var2.node, &var1.node, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, &var3.node, bkt_arr + 1);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var6.node, &var5.node, bkt_arr + 2);
+    ASSERT_NODE(var1.node, NULL);
+    ASSERT_NODE(var2.node, &var1.node);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, &var3.node);
+    ASSERT_NODE(var5.node, NULL);
+    ASSERT_NODE(var6.node, &var5.node);
     reset_globals();
 
     hashtable_insert(&hashtable, &var6.key, &var6.node);
     ASSERT_HASHTABLE(hashtable, 1);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
+    ASSERT_NODE(var6.node, NULL);
     hashtable_insert(&hashtable, &var5.key, &var5.node);
     ASSERT_HASHTABLE(hashtable, 2);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
+    ASSERT_NODE(var4.node, NULL);
     var3.key = var6.key;
     hashtable_insert(&hashtable, &var3.key, &var3.node);
     assert(var3.num_similar_keys == 1);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var6.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var5.node, &var3.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 2);
+    ASSERT_NODE(var6.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var5.node, &var3.node);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var3.node, NULL);
     hashtable_insert(&hashtable, &var6.key, &var6.node);
     assert(var6.num_similar_keys == 2);
     ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var3.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var3.node, HASHTABLE_POISON_NEXT);
     var3.key = 3;
     hashtable_insert(&hashtable, &var3.key, &var3.node);
     ASSERT_HASHTABLE(hashtable, 4);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var3.node, &var4.node, bkt_arr + 1);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var3.node, &var4.node);
     hashtable_insert(&hashtable, &var2.key, &var2.node);
     ASSERT_HASHTABLE(hashtable, 5);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var3.node, &var4.node, bkt_arr + 1);
-    ASSERT_NODE(var2.node, NULL, bkt_arr + 0);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var3.node, &var4.node);
+    ASSERT_NODE(var2.node, NULL);
     hashtable_insert(&hashtable, &var1.key, &var1.node);
     ASSERT_HASHTABLE(hashtable, 6);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var5.node, &var6.node, bkt_arr + 2);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var3.node, &var4.node, bkt_arr + 1);
-    ASSERT_NODE(var2.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var1.node, &var2.node, bkt_arr + 0);
+    ASSERT_NODE(var6.node, NULL);
+    ASSERT_NODE(var5.node, &var6.node);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var3.node, &var4.node);
+    ASSERT_NODE(var2.node, NULL);
+    ASSERT_NODE(var1.node, &var2.node);
     reset_globals();
 
     loop {
@@ -575,11 +571,11 @@ void test_hashtable_lookup_key(void) {
     var4.key = var1.key;
     hashtable_insert(&hashtable, &var4.key, &var4.node);
     assert(hashtable_lookup_key(&hashtable, &var4.key) == &var4.node);
-    hashtable_remove(&hashtable, &var3.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node);
     assert(hashtable_lookup_key(&hashtable, &var3.key) == NULL);
-    hashtable_remove(&hashtable, &var2.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node);
     assert(hashtable_lookup_key(&hashtable, &var2.key) == NULL);
-    hashtable_remove(&hashtable, &var4.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node);
     assert(hashtable_lookup_key(&hashtable, &var4.key) == NULL);
     reset_globals();
 
@@ -602,59 +598,6 @@ void test_hashtable_lookup_key(void) {
     }
 }
 
-void test_hashtable_remove(void) {
-    hashtable_remove(&hashtable, NULL);
-    ASSERT_HASHTABLE(hashtable, 0);
-
-    hashtable_insert(&hashtable, &var1.key, &var1.node);
-    hashtable_insert(&hashtable, &var2.key, &var2.node);
-    hashtable_insert(&hashtable, &var3.key, &var3.node);
-    hashtable_insert(&hashtable, &var4.key, &var4.node);
-    hashtable_insert(&hashtable, &var5.key, &var5.node);
-    hashtable_insert(&hashtable, &var6.key, &var6.node);
-    hashtable_remove(&hashtable, &var1.node);
-    ASSERT_HASHTABLE(hashtable, 5);
-    ASSERT_NODE(var1.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var2.node, NULL, bkt_arr + 0);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, &var3.node, bkt_arr + 1);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var6.node, &var5.node, bkt_arr + 2);
-    hashtable_remove(&hashtable, &var2.node);
-    ASSERT_HASHTABLE(hashtable, 4);
-    ASSERT_NODE(var2.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var3.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var4.node, &var3.node, bkt_arr + 1);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var6.node, &var5.node, bkt_arr + 2);
-    hashtable_remove(&hashtable, &var3.node);
-    ASSERT_HASHTABLE(hashtable, 3);
-    ASSERT_NODE(var3.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var4.node, NULL, bkt_arr + 1);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var6.node, &var5.node, bkt_arr + 2);
-    hashtable_remove(&hashtable, &var4.node);
-    ASSERT_HASHTABLE(hashtable, 2);
-    ASSERT_NODE(var4.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var5.node, NULL, bkt_arr + 2);
-    ASSERT_NODE(var6.node, &var5.node, bkt_arr + 2);
-    hashtable_remove(&hashtable, &var5.node);
-    ASSERT_HASHTABLE(hashtable, 1);
-    ASSERT_NODE(var5.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    ASSERT_NODE(var6.node, NULL, bkt_arr + 2);
-    hashtable_remove(&hashtable, &var6.node);
-    ASSERT_HASHTABLE(hashtable, 0);
-    ASSERT_NODE(var6.node, HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET);
-    reset_globals();
-
-    loop {
-        FILL_RANDOMLY(hashtable);
-        DRAIN_RANDOMLY(hashtable);
-        ASSERT_HASHTABLE(hashtable, 0);
-        reset_globals();
-    }
-}
-
 void test_hashtable_remove_key(void) {
     hashtable_remove_key(&hashtable, &var1.key);
 
@@ -668,25 +611,50 @@ void test_hashtable_remove_key(void) {
     ASSERT_HASHTABLE(hashtable, 2);
     reset_globals();
 
+    hashtable_insert(&hashtable, &var1.key, &var1.node);
+    hashtable_insert(&hashtable, &var2.key, &var2.node);
+    hashtable_insert(&hashtable, &var3.key, &var3.node);
+    hashtable_insert(&hashtable, &var4.key, &var4.node);
+    hashtable_insert(&hashtable, &var5.key, &var5.node);
+    hashtable_insert(&hashtable, &var6.key, &var6.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var1.node);
+    ASSERT_HASHTABLE(hashtable, 5);
+    ASSERT_NODE(var1.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var2.node, NULL);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, &var3.node);
+    ASSERT_NODE(var5.node, NULL);
+    ASSERT_NODE(var6.node, &var5.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var2.node);
+    ASSERT_HASHTABLE(hashtable, 4);
+    ASSERT_NODE(var2.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var3.node, NULL);
+    ASSERT_NODE(var4.node, &var3.node);
+    ASSERT_NODE(var5.node, NULL);
+    ASSERT_NODE(var6.node, &var5.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var3.node);
+    ASSERT_HASHTABLE(hashtable, 3);
+    ASSERT_NODE(var3.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var4.node, NULL);
+    ASSERT_NODE(var5.node, NULL);
+    ASSERT_NODE(var6.node, &var5.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var4.node);
+    ASSERT_HASHTABLE(hashtable, 2);
+    ASSERT_NODE(var4.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var5.node, NULL);
+    ASSERT_NODE(var6.node, &var5.node);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var5.node);
+    ASSERT_HASHTABLE(hashtable, 1);
+    ASSERT_NODE(var5.node, HASHTABLE_POISON_NEXT);
+    ASSERT_NODE(var6.node, NULL);
+    HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, &var6.node);
+    ASSERT_HASHTABLE(hashtable, 0);
+    ASSERT_NODE(var6.node, HASHTABLE_POISON_NEXT);
+    reset_globals();
+
     loop {
         FILL_RANDOMLY(hashtable);
-        hashtable_remove_key(&hashtable, &var1.key);
-        assert(hashtable_contains_key(&hashtable, &var1.key) == 0);
-        ASSERT_HASHTABLE(hashtable, 5);
-        hashtable_remove_key(&hashtable, &var2.key);
-        assert(hashtable_contains_key(&hashtable, &var2.key) == 0);
-        ASSERT_HASHTABLE(hashtable, 4);
-        hashtable_remove_key(&hashtable, &var3.key);
-        assert(hashtable_contains_key(&hashtable, &var3.key) == 0);
-        ASSERT_HASHTABLE(hashtable, 3);
-        hashtable_remove_key(&hashtable, &var4.key);
-        assert(hashtable_contains_key(&hashtable, &var4.key) == 0);
-        ASSERT_HASHTABLE(hashtable, 2);
-        hashtable_remove_key(&hashtable, &var5.key);
-        assert(hashtable_contains_key(&hashtable, &var5.key) == 0);
-        ASSERT_HASHTABLE(hashtable, 1);
-        hashtable_remove_key(&hashtable, &var6.key);
-        assert(hashtable_contains_key(&hashtable, &var6.key) == 0);
+        DRAIN_RANDOMLY(hashtable);
         ASSERT_HASHTABLE(hashtable, 0);
         reset_globals();
     }
@@ -723,7 +691,6 @@ void test_hashtable_remove_all(void) {
 void test_hashtable_entry(void) {
     assert(hashtable_entry(&var1.node, TestStruct, node)->key == 1);
     assert(hashtable_entry(&var1.node, TestStruct, node)->node.next == HASHTABLE_POISON_NEXT);
-    assert(hashtable_entry(&var1.node, TestStruct, node)->node.bucket == HASHTABLE_POISON_BUCKET);
 }
 
 void test_hashtable_for_each(void) {
@@ -757,7 +724,7 @@ void test_hashtable_for_each_safe(void) {
     i = 0;
     hashtable_for_each_safe(n, backup, bkt, &hashtable) {
         ASSERT_FOR_EACH(n, i);
-        hashtable_remove(&hashtable, n);
+        HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, n);
         n = NULL;
         ++i;
     }
@@ -803,19 +770,19 @@ void test_hashtable_for_each_possible_safe(void) {
     i = 0;
     hashtable_for_each_possible_safe(n, backup, &var1.key, &hashtable) {
         ASSERT_FOR_EACH(n, i);
-        hashtable_remove(&hashtable, n);
+        HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, n);
         n = NULL;
         ++i;
     }
     hashtable_for_each_possible_safe(n, backup, &var4.key, &hashtable) {
         ASSERT_FOR_EACH(n, i);
-        hashtable_remove(&hashtable, n);
+        HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, n);
         n = NULL;
         ++i;
     }
     hashtable_for_each_possible_safe(n, backup, &var6.key, &hashtable) {
         ASSERT_FOR_EACH(n, i);
-        hashtable_remove(&hashtable, n);
+        HASHTABLE_REMOVE_KEY_BY_NODE(&hashtable, n);
         n = NULL;
         ++i;
     }
@@ -832,7 +799,6 @@ TestFunc test_funcs[] = {
     test_hashtable_contains_key,
     test_hashtable_insert,
     test_hashtable_lookup_key,
-    test_hashtable_remove,
     test_hashtable_remove_key,
     test_hashtable_remove_all,
     test_hashtable_entry,
@@ -847,7 +813,7 @@ int main(int argc, char *argv[]) {
     assert(argc == 2);
     strcat(msg, argv[1]);
 
-    assert(sizeof(test_funcs) / sizeof(TestFunc) == 17);
+    assert(sizeof(test_funcs) / sizeof(TestFunc) == 16);
     run_tests(test_funcs, sizeof(test_funcs) / sizeof(TestFunc), msg, reset_globals);
 
     return 0;

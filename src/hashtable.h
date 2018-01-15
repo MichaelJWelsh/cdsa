@@ -79,7 +79,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *              hashtable_fast_init(&hashtable, bucket_array, 50, hash, equal, NULL, NULL);
  *              hashtable_insert(&hashtable, &obj.key, &obj.n);
- *              
+ *
  *              obj.val = 1000;
  *              copy_val = hashtable_entry(hashtable_lookup_key(&hashtable, &obj.key), struct Object, n)->val;
  *              assert(obj.val == copy_val);
@@ -110,14 +110,12 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *      Lookup:
  *          -   hashtable_lookup_key
  *      Removal:
- *          -   hashtable_remove
  *          -   hashtable_remove_key
  *          -   hashtable_remove_all
  *
  *      ====  MACROS  ====
  *      Constants:
  *          -   HASHTABLE_POISON_NEXT
- *          -   HASHTABLE_POISON_BUCKET
  *      Convenient Node Initializer:
  *          -   HASHTABLE_NODE_INIT
  *      Properties:
@@ -170,7 +168,6 @@ struct HashTable {
  */
 struct HashTableNode {
     HashTableNode *next;
-    HashTableNode **bucket;
 };
 
 /* ========================================================================================================
@@ -372,20 +369,6 @@ void hashtable_insert(HashTable *hashtable, const void *key, HashTableNode *node
 HashTableNode* hashtable_lookup_key(const HashTable *hashtable, const void *key);
 
 /**
- * Removes the @ref node from the @ref hashtable. If @ref node == NULL, this function simply returns.
- *
- * Requirements:
- *      -   @ref hashtable != NULL
- *
- * Time complexity:
- *      -   O(n/m), where m == number of buckets in bucket array
- *
- * @param hashtable             The @ref HashTable containing the @ref node to be removed.
- * @param node                  The @ref HashTableNode in the @ref hashtable to be removed.
- */
-void hashtable_remove(HashTable *hashtable, HashTableNode *node);
-
-/**
  * Removes the @ref HashTableNode associated with the @ref key from the @ref hashtable. If a match for the
  * @ref key is not found, this function simply returns.
  *
@@ -427,16 +410,10 @@ void hashtable_remove_all(HashTable *hashtable);
 #define HASHTABLE_POISON_NEXT ((HashTableNode*) 0x100)
 
 /**
- * Non-NULL pointer that will result in page faults under normal circumstances. Is the "bucket" member of
- * a single removed @ref HashTableNode. Useful for identifying bugs.
- */
-#define HASHTABLE_POISON_BUCKET ((HashTableNode**) 0x200)
-
-/**
  * Initializing a @ref HashTableNode before it is used is NOT required. This macro is simply for allowing you
  * to initialize a struct (containing one or more @ref HashTableNode's) with an initializer-list conveniently.
  */
-#define HASHTABLE_NODE_INIT { HASHTABLE_POISON_NEXT, HASHTABLE_POISON_BUCKET }
+#define HASHTABLE_NODE_INIT { HASHTABLE_POISON_NEXT }
 
 /**
  * Obtains the pointer to the struct for this entry.

@@ -121,10 +121,8 @@ void hashtable_insert(HashTable *hashtable, const void *key, HashTableNode *node
                 *bucket = node;
             }
 
-            *node = *n;
-
+            node->next = n->next;
             n->next = HASHTABLE_POISON_NEXT;
-            n->bucket = HASHTABLE_POISON_BUCKET;
 
             if (hashtable->collide) {
                 hashtable->collide(n, node, hashtable->auxiliary_data);
@@ -135,7 +133,6 @@ void hashtable_insert(HashTable *hashtable, const void *key, HashTableNode *node
     }
 
     node->next = *bucket;
-    node->bucket = bucket;
     *bucket = node;
 
     ++hashtable->size;
@@ -155,35 +152,28 @@ HashTableNode* hashtable_lookup_key(const HashTable *hashtable, const void *key)
     return n;
 }
 
-void hashtable_remove(HashTable *hashtable, HashTableNode *node) {
-    assert(hashtable);
-
-    if (!node) {
-        return;
-    }
-
-    if (*node->bucket == node) {
-        *node->bucket = node->next;
-    } else {
-        HashTableNode *n = *node->bucket;
-
-        while (n->next != node) {
-            n = n->next;
-        }
-
-        n->next = node->next;
-    }
-
-    node->next = HASHTABLE_POISON_NEXT;
-    node->bucket = HASHTABLE_POISON_BUCKET;
-
-    --hashtable->size;
-}
-
 void hashtable_remove_key(HashTable *hashtable, const void *key) {
+    HashTableNode **bucket, *n, *prev;
+
     assert(hashtable);
 
-    hashtable_remove(hashtable, hashtable_lookup_key(hashtable, key));
+    bucket = hashtable->bucket_array + hashtable->hash(key) % hashtable->num_buckets;
+
+    for (n = *bucket, prev = NULL; n; prev = n, n = n->next) {
+        if (hashtable->equal(key, n)) {
+            if (prev) {
+                prev->next = n->next;
+            } else {
+                *bucket = n->next;
+            }
+
+            n->next = HASHTABLE_POISON_NEXT;
+
+            --hashtable->size;
+
+            return;
+        }
+    }
 }
 
 void hashtable_remove_all(HashTable *hashtable) {
