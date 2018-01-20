@@ -92,9 +92,9 @@ int compare(const void *some_key, const RBTreeNode *some_node) {
 // resources in the Object variable pertaining to the discarded RBTreeNode. This function
 // is also great for enabling multi-key functionality in the RBTree.
 void collide(const RBTreeNode *old_node, const RBTreeNode *new_node, void *auxiliary_data) {
-    // When a RBTree is created, we can give it auxiliary data to hold onto. This data is then 
-    // passed to this function for usage. This data, for example, could be a memory pool struct 
-    // that is needed to free up the resources used by the Object variable pertaining to the 
+    // When a RBTree is created, we can give it auxiliary data to hold onto. This data is then
+    // passed to this function for usage. This data, for example, could be a memory pool struct
+    // that is needed to free up the resources used by the Object variable pertaining to the
     // old_node parameter.
 
     ...
@@ -176,9 +176,9 @@ int equal(const void *some_key, const HashTableNode *some_node) {
 // resources in the Object variable pertaining to the discarded HashTableNode. This function
 // is also great for enabling multi-key functionality in the HashTable.
 void collide(const HashTableNode *old_node, const HashTableNode *new_node, void *auxiliary_data) {
-    // When a HashTable is created, we can give it auxiliary data to hold onto. This data is then 
-    // passed to this function for usage. This data, for example, could be a memory pool struct 
-    // that is needed to free up the resources used by the Object variable pertaining to the 
+    // When a HashTable is created, we can give it auxiliary data to hold onto. This data is then
+    // passed to this function for usage. This data, for example, could be a memory pool struct
+    // that is needed to free up the resources used by the Object variable pertaining to the
     // old_node parameter.
 
     ...
@@ -227,6 +227,106 @@ HashTableNode *node_ptr = hashtable_lookup_key(&my_hashtable, &key);
 // but how do you get the Object variable when you only have the "node" member?
 // Solution: the macro "hashtable_entry":
 struct Object *obj_ptr = hashtable_entry(node_ptr, struct Object, node);
+assert(obj_ptr == &obj1);
+```
+#### Stack
+```c
+// Define your struct somewhere.
+struct Object {
+    int some_value;
+    ...
+
+    // Don't forget to embed the StackNode!
+    StackNode node;
+};
+
+...
+
+// Create some Object variables.
+struct Object obj1, obj2;
+obj1.some_value = 1;
+obj2.some_value = 2;
+
+// Create your Stack.
+Stack my_stack;
+stack_init(&my_stack);
+
+// Populate your Stack. Notice how the API abstracts itself and only cares about the StackNode.
+stack_push(&my_stack, &obj1.node);
+stack_push(&my_stack, &obj2.node);
+
+// Let's see what is stored in the Stack:
+int i = 1;
+StackNode *n;
+stack_for_each(n, &my_stack) {
+    if (i == 1) {
+        assert(n == &obj2.node);
+    } else if (i == 2){
+        assert(n == &obj1.node);
+    }
+
+    ++i;
+}
+
+...
+
+// Let's get the StackNode at the top of the Stack.
+StackNode *top_node_ptr = stack_peek(&my_stack);
+
+// Getting the "node" member from an Object variable is easy: ("obj1.node"),
+// but how do you get the Object variable when you only have the "node" member?
+// Solution: the macro "stack_entry":
+struct Object *obj_ptr = stack_entry(top_node_ptr, struct Object, node);
+assert(obj_ptr == &obj2);
+```
+#### Queue
+```c
+// Define your struct somewhere.
+struct Object {
+    int some_value;
+    ...
+
+    // Don't forget to embed the QueueNode!
+    QueueNode node;
+};
+
+...
+
+// Create some Object variables.
+struct Object obj1, obj2;
+obj1.some_value = 1;
+obj2.some_value = 2;
+
+// Create your Queue.
+Queue my_queue;
+queue_init(&my_queue);
+
+// Populate your Queue. Notice how the API abstracts itself and only cares about the QueueNode.
+queue_push(&my_queue, &obj1.node);
+queue_push(&my_queue, &obj2.node);
+
+// Let's see what is stored in the Queue:
+int i = 1;
+QueueNode *n;
+queue_for_each(n, &my_queue) {
+    if (i == 1) {
+        assert(n == &obj1.node);
+    } else if (i == 2){
+        assert(n == &obj2.node);
+    }
+
+    ++i;
+}
+
+...
+
+// Let's get the QueueNode at the front of the Queue.
+QueueNode *front_node_ptr = queue_peek(&my_queue);
+
+// Getting the "node" member from an Object variable is easy: ("obj1.node"),
+// but how do you get the Object variable when you only have the "node" member?
+// Solution: the macro "queue_entry":
+struct Object *obj_ptr = queue_entry(front_node_ptr, struct Object, node);
 assert(obj_ptr == &obj1);
 ```
 
@@ -293,6 +393,30 @@ g++ test_hash_string.c ../src/hash_string.c ../src/hashtable.c -o test_hash_stri
 PASSED: hash_string(...) C++11
 
 rm -f test_hash_string
+gcc test_stack.c ../src/stack.c -o test_stack -Wall -Wextra -Werror -pedantic-errors -std=c89
+./test_stack C89
+
+PASSED: Stack C89
+
+rm -f test_stack
+g++ test_stack.c ../src/stack.c -o test_stack -Wall -Wextra -Werror -pedantic-errors -std=c++11
+./test_stack C++11
+
+PASSED: Stack C++11
+
+rm -f test_stack
+gcc test_queue.c ../src/queue.c -o test_queue -Wall -Wextra -Werror -pedantic-errors -std=c89
+./test_queue C89
+
+PASSED: Queue C89
+
+rm -f test_queue
+g++ test_queue.c ../src/queue.c -o test_queue -Wall -Wextra -Werror -pedantic-errors -std=c++11
+./test_queue C++11
+
+PASSED: Queue C++11
+
+rm -f test_queue
 ```
 
 ## Contributing

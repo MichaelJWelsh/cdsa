@@ -4,7 +4,7 @@ C_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c89
 CPP_COMPILER=g++
 CPP_FLAGS=-Wall -Wextra -Werror -pedantic-errors -std=c++11
 
-all: test_list test_rbtree test_hashtable test_hash_string
+all: test_list test_rbtree test_hashtable test_hash_string test_stack test_queue
 
 test_list:
 	$(C_COMPILER) test_list.c ../src/list.c -o test_list $(C_FLAGS)
@@ -37,3 +37,19 @@ test_hash_string:
 	$(CPP_COMPILER) test_hash_string.c ../src/hash_string.c ../src/hashtable.c -o test_hash_string $(CPP_FLAGS)
 	./test_hash_string C++11
 	rm -f test_hash_string
+
+test_stack:
+	$(C_COMPILER) test_stack.c ../src/stack.c -o test_stack $(C_FLAGS)
+	./test_stack C89
+	rm -f test_stack
+	$(CPP_COMPILER) test_stack.c ../src/stack.c -o test_stack $(CPP_FLAGS)
+	./test_stack C++11
+	rm -f test_stack
+
+test_queue:
+	$(C_COMPILER) test_queue.c ../src/queue.c -o test_queue $(C_FLAGS)
+	./test_queue C89
+	rm -f test_queue
+	$(CPP_COMPILER) test_queue.c ../src/queue.c -o test_queue $(CPP_FLAGS)
+	./test_queue C++11
+	rm -f test_queue
