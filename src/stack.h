@@ -251,10 +251,18 @@ void stack_remove_all(Stack *stack);
  * @param type                  The type of the struct the @ref StackNode is embedded in.
  * @param member                The name of the @ref StackNode in the struct.
  */
-#define stack_entry(node_ptr, type, member) \
-    ( \
-        (type*) ((char*)(node_ptr) - offsetof(type, member)) \
-    )
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+    #define stack_entry(node_ptr, type, member) \
+        ({ \
+            const typeof(((type*)0)->member) *__mptr = (node_ptr); \
+            (type*) ((char*)__mptr - offsetof(type, member)); \
+        })
+#else
+    #define stack_entry(node_ptr, type, member) \
+        ( \
+            (type*) ((char*)(node_ptr) - offsetof(type, member)) \
+        )
+#endif
 
 /**
  * Iterates over the @ref Stack from top to bottom.

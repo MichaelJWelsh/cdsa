@@ -503,10 +503,18 @@ void rbtree_remove_all(RBTree *rbtree);
  * @param type                  The type of the struct the @ref RBTreeNode is embedded in.
  * @param member                The name of the @ref RBTreeNode in the struct.
  */
-#define rbtree_entry(node_ptr, type, member) \
-    ( \
-        (type*) ((char*)(node_ptr) - offsetof(type, member)) \
-    )
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+    #define rbtree_entry(node_ptr, type, member) \
+        ({ \
+            const typeof(((type*)0)->member) *__mptr = (node_ptr); \
+            (type*) ((char*)__mptr - offsetof(type, member)); \
+        })
+#else
+    #define rbtree_entry(node_ptr, type, member) \
+        ( \
+            (type*) ((char*)(node_ptr) - offsetof(type, member)) \
+        )
+#endif
 
 /**
  * Iterates over the @ref RBTree (inorder) from the first @ref RBTreeNode to the last @ref RBTreeNode.

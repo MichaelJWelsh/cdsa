@@ -8,7 +8,7 @@
 - [Contributing](#contributing)
 
 ## Background
-This repository is an ongoing project of implementing generic data structures and algorithms in ANSI C. I find I often use the same constructs that require a lot of boilerplate code, so I made this repository to both organize these constructs and allow easy integration of these constructs into existing projects.
+This repository is an ongoing project of implementing generic *intrusive* data structures and algorithms in ANSI C. I find I often use the same constructs that require a lot of boilerplate code, so I made this repository to both organize these constructs and allow easy integration of these constructs into existing projects.
 
 My design philosophy with this repository is to offer a minimalistic API for each data structure, containing all tools needed to easily build more complex/niche constructs. Portability is top priority, so only ANSI C is used, and no header/source pair relies on another header/source pair. Furthermore, to promote being used in embedded systems, iterative algorithms are used exclusively over recursive algorithms, and each data structure is intrusive (for better memory locality).
 
@@ -351,10 +351,22 @@ gcc test_list.c ../src/list.c -o test_list -Wall -Wextra -Werror -pedantic-error
 PASSED: List C89
 
 rm -f test_list
+gcc test_list.c ../src/list.c -o test_list -Wall -Wextra -Werror -std=gnu89
+./test_list GNU89
+
+PASSED: List GNU89
+
+rm -f test_list
 g++ test_list.c ../src/list.c -o test_list -Wall -Wextra -Werror -pedantic-errors -std=c++11
 ./test_list C++11
 
 PASSED: List C++11
+
+rm -f test_list
+g++ test_list.c ../src/list.c -o test_list -Wall -Wextra -Werror -std=gnu++11
+./test_list GNU++11
+
+PASSED: List GNU++11
 
 rm -f test_list
 gcc test_rbtree.c ../src/rbtree.c -o test_rbtree -Wall -Wextra -Werror -pedantic-errors -std=c89
@@ -363,60 +375,12 @@ gcc test_rbtree.c ../src/rbtree.c -o test_rbtree -Wall -Wextra -Werror -pedantic
 PASSED: RBTree C89
 
 rm -f test_rbtree
-g++ test_rbtree.c ../src/rbtree.c -o test_rbtree -Wall -Wextra -Werror -pedantic-errors -std=c++11
-./test_rbtree C++11
+gcc test_rbtree.c ../src/rbtree.c -o test_rbtree -Wall -Wextra -Werror -std=gnu89
+./test_rbtree GNU89
 
-PASSED: RBTree C++11
+PASSED: RBTree GNU89
 
-rm -f test_rbtree
-gcc test_hashtable.c ../src/hashtable.c -o test_hashtable -Wall -Wextra -Werror -pedantic-errors -std=c89
-./test_hashtable C89
-
-PASSED: HashTable C89
-
-rm -f test_hashtable
-g++ test_hashtable.c ../src/hashtable.c -o test_hashtable -Wall -Wextra -Werror -pedantic-errors -std=c++11
-./test_hashtable C++11
-
-PASSED: HashTable C++11
-
-rm -f test_hashtable
-gcc test_hash_string.c ../src/hash_string.c ../src/hashtable.c -o test_hash_string -Wall -Wextra -Werror -pedantic-errors -std=c89
-./test_hash_string C89
-
-PASSED: hash_string(...) C89
-
-rm -f test_hash_string
-g++ test_hash_string.c ../src/hash_string.c ../src/hashtable.c -o test_hash_string -Wall -Wextra -Werror -pedantic-errors -std=c++11
-./test_hash_string C++11
-
-PASSED: hash_string(...) C++11
-
-rm -f test_hash_string
-gcc test_stack.c ../src/stack.c -o test_stack -Wall -Wextra -Werror -pedantic-errors -std=c89
-./test_stack C89
-
-PASSED: Stack C89
-
-rm -f test_stack
-g++ test_stack.c ../src/stack.c -o test_stack -Wall -Wextra -Werror -pedantic-errors -std=c++11
-./test_stack C++11
-
-PASSED: Stack C++11
-
-rm -f test_stack
-gcc test_queue.c ../src/queue.c -o test_queue -Wall -Wextra -Werror -pedantic-errors -std=c89
-./test_queue C89
-
-PASSED: Queue C89
-
-rm -f test_queue
-g++ test_queue.c ../src/queue.c -o test_queue -Wall -Wextra -Werror -pedantic-errors -std=c++11
-./test_queue C++11
-
-PASSED: Queue C++11
-
-rm -f test_queue
+etc... (this goes on for a while)
 ```
 
 ## Contributing

@@ -425,10 +425,18 @@ void hashtable_remove_all(HashTable *hashtable);
  * @param type                  The type of the struct the @ref HashTableNode is embedded in.
  * @param member                The name of the @ref HashTableNode in the struct.
  */
-#define hashtable_entry(node_ptr, type, member) \
-    ( \
-        (type*) ((char*)(node_ptr) - offsetof(type, member)) \
-    )
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+    #define hashtable_entry(node_ptr, type, member) \
+        ({ \
+            const typeof(((type*)0)->member) *__mptr = (node_ptr); \
+            (type*) ((char*)__mptr - offsetof(type, member)); \
+        })
+#else
+    #define hashtable_entry(node_ptr, type, member) \
+        ( \
+            (type*) ((char*)(node_ptr) - offsetof(type, member)) \
+        )
+#endif
 
 /**
  * Iterates over the @ref HashTable.
